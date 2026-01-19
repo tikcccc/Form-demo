@@ -60,15 +60,26 @@ export default function WorkflowDetailPage() {
     }
   }, [selectedAction]);
 
+  useEffect(() => {
+    if (selectedActionId && !selectedAction) {
+      setSelectedActionId('');
+      setSelectedToGroup('');
+    }
+  }, [selectedActionId, selectedAction]);
+
   if (!instance) {
     return <Typography.Text>Workflow not found.</Typography.Text>;
   }
 
   const editable = instance.steps.length === 0;
+  const canTakeAction = instance.status === 'Open' && (inInbox || editable);
   const createdByLabel = getRoleById(state.roles, instance.createdBy)?.label || instance.createdBy;
 
   const handleSend = () => {
     if (!selectedAction || !selectedToGroup) {
+      return;
+    }
+    if (selectedAction.requiresAttachmentStatus && !attachmentsReady) {
       return;
     }
     actions.sendAction({
@@ -133,7 +144,7 @@ export default function WorkflowDetailPage() {
           statusOptions={selectedAction?.statusSet || ['Approved', 'Rejected', 'AIP', 'For Info']}
         />
         <Space direction="vertical" size={16} style={{ width: '100%' }}>
-          {instance.status === 'Open' && inInbox && (
+          {canTakeAction && (
             <ActionPanel
               actions={availableActions}
               selectedActionId={selectedActionId}

@@ -15,7 +15,7 @@
 body {
   margin: 0;
   font-family: 'Manrope', 'Segoe UI', sans-serif;
-  background: var(--bg);
+  background: radial-gradient(circle at top, #fdfdff 0%, #f2f4f9 45%, #f7f8fb 100%);
   color: var(--text-primary);
 }
 
@@ -56,12 +56,14 @@ body {
   background: var(--card-bg);
   border: 1px solid var(--border);
   border-radius: 12px;
+  animation: fadeInUp 0.35s ease;
 }
 
 .panel-card {
   background: var(--card-bg);
   border: 1px solid var(--border);
   border-radius: 12px;
+  animation: fadeInUp 0.35s ease;
 }
 
 .filter-bar {
@@ -112,4 +114,15 @@ body {
 
 .muted {
   color: var(--text-muted);
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }

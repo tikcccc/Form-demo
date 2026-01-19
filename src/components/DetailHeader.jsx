@@ -21,7 +21,7 @@ export default function DetailHeader({
         <Typography.Title heading={5} style={{ margin: 0 }}>
           {instance.transmittalNo} · {typeName}
         </Typography.Title>
-        <Descriptions column={3} layout="inline-vertical">
+        <Descriptions column={3} layout="vertical">
           <Descriptions.Item label="Status">
             <StatusTag status={instance.status} />
           </Descriptions.Item>

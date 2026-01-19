@@ -54,7 +54,10 @@ export default function SettingsPage() {
           <Typography.Title heading={4} style={{ margin: 0 }}>
             Settings
           </Typography.Title>
-          <Button onClick={actions.resetData}>Reset to Starter Pack</Button>
+          <Space>
+            <Button onClick={() => navigate('/settings/templates')}>Template Library</Button>
+            <Button onClick={actions.resetData}>Reset to Starter Pack</Button>
+          </Space>
         </Space>
       </Card>
       <Card className="page-card">

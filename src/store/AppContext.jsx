@@ -188,6 +188,32 @@ export function AppProvider({ children }) {
           };
         });
       },
+      createTemplate({ typeId, sourceTemplateId, name }) {
+        const newId = `tpl-${Date.now()}`;
+        setState((prev) => {
+          const source = prev.templates.find((item) => item.id === sourceTemplateId);
+          if (!source) {
+            return prev;
+          }
+          const copy = {
+            ...source,
+            id: newId,
+            typeId,
+            name: name || `${source.name} Copy`,
+            published: false,
+          };
+          return {
+            ...prev,
+            templates: [...prev.templates, copy],
+            types: prev.types.map((type) =>
+              type.id === typeId
+                ? { ...type, templateIds: [...type.templateIds, newId] }
+                : type
+            ),
+          };
+        });
+        return newId;
+      },
     }),
     []
   );

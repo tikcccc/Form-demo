@@ -82,9 +82,12 @@ export default function WorkflowsPage() {
             <Typography.Title heading={4} style={{ margin: 0 }}>
               Workflows
             </Typography.Title>
-            <Button type="primary" onClick={() => setModalVisible(true)}>
-              Create
-            </Button>
+            <Space>
+              <Button onClick={() => navigate('/settings')}>Settings</Button>
+              <Button type="primary" onClick={() => setModalVisible(true)}>
+                Create
+              </Button>
+            </Space>
           </Space>
           <Tabs activeTab={activeTab} onChange={setActiveTab} type="rounded">
             <TabPane key="all" title="All" />

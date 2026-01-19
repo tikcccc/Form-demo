@@ -32,7 +32,7 @@ export default function TemplateEditorPage() {
               {type?.name || typeId} · {template.name}
             </Typography.Title>
           </Space>
-          <Button onClick={() => navigate('/settings')}>Back to Settings</Button>
+          <Button onClick={() => navigate('/settings')}>Back to Templates</Button>
         </Space>
       </Card>
       <Card className="page-card">

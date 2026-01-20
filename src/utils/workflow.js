@@ -32,7 +32,10 @@ export function canViewInstance(instance, roleId, roles) {
     return false;
   }
   return instance.steps.some(
-    (step) => step.fromRoleId === roleId || step.toGroup === role.group
+    (step) =>
+      step.fromRoleId === roleId ||
+      step.toGroup === role.group ||
+      (step.ccRoleIds || []).includes(roleId)
   );
 }
 
@@ -114,6 +117,9 @@ export function isUnread(instance, currentRoleId, roles) {
 export function getAvailableActions(template, roleId) {
   if (!template || !template.actions) {
     return [];
+  }
+  if (isProjectAdmin(roleId)) {
+    return template.actions;
   }
   return template.actions.filter((action) => action.allowedRoles.includes(roleId));
 }
@@ -198,16 +204,25 @@ export function areAttachmentStatusesComplete(instance) {
   if (!instance.attachments || instance.attachments.length === 0) {
     return true;
   }
-  return instance.attachments.every((attachment) => attachment.status);
+  const draftAttachments = instance.attachments.filter((attachment) => !attachment.stepId);
+  if (draftAttachments.length === 0) {
+    return true;
+  }
+  return draftAttachments.every((attachment) => attachment.status);
 }
 
 export function isPartialForStep(instance, step) {
   if (!step || !step.requiresAttachmentStatus) {
     return false;
   }
-  const statuses = step.attachmentStatuses
-    ? step.attachmentStatuses.map((item) => item.status)
-    : instance.attachments.map((attachment) => attachment.status);
+  const stepAttachments = instance.attachments
+    ? instance.attachments.filter((attachment) => attachment.stepId === step.id)
+    : [];
+  const statuses = stepAttachments.length > 0
+    ? stepAttachments.map((attachment) => attachment.status)
+    : step.attachmentStatuses
+      ? step.attachmentStatuses.map((item) => item.status)
+      : [];
   if (!statuses || statuses.length === 0) {
     return false;
   }

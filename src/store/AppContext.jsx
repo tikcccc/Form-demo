@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useMemo, useState } from 'react';
+import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { initialState } from '../data/mockData.js';
 import {
   addDays,
@@ -9,6 +9,7 @@ import {
   getNextTransmittalNo,
   getRoleById,
   getTemplateById,
+  isProjectAdmin,
   todayISO,
 } from '../utils/workflow.js';
 
@@ -16,6 +17,15 @@ const AppContext = createContext(null);
 
 export function AppProvider({ children }) {
   const [state, setState] = useState(initialState);
+
+  useEffect(() => {
+    setState((prev) => {
+      if (prev.fileLibrary) {
+        return prev;
+      }
+      return { ...prev, fileLibrary: initialState.fileLibrary };
+    });
+  }, []);
 
   const actions = useMemo(
     () => ({
@@ -87,6 +97,7 @@ export function AppProvider({ children }) {
             }
             const nextAttachment = {
               id: `att-${Date.now()}`,
+              stepId: '',
               status: '',
               ...attachment,
             };
@@ -94,6 +105,20 @@ export function AppProvider({ children }) {
               ...instance,
               attachments: [...instance.attachments, nextAttachment],
             };
+          }),
+        }));
+      },
+      removeAttachment(instanceId, attachmentId) {
+        setState((prev) => ({
+          ...prev,
+          instances: prev.instances.map((instance) => {
+            if (instance.id !== instanceId) {
+              return instance;
+            }
+            const nextAttachments = instance.attachments.filter(
+              (attachment) => attachment.id !== attachmentId
+            );
+            return { ...instance, attachments: nextAttachments };
           }),
         }));
       },
@@ -129,6 +154,67 @@ export function AppProvider({ children }) {
           }),
         }));
       },
+      delegateStep({ instanceId, toGroup, note }) {
+        setState((prev) => ({
+          ...prev,
+          instances: prev.instances.map((instance) => {
+            if (instance.id !== instanceId) {
+              return instance;
+            }
+            if (!instance.steps || instance.steps.length === 0) {
+              return instance;
+            }
+            if (instance.status !== 'Open') {
+              return instance;
+            }
+            const latest = getLatestSentStep(instance);
+            if (!latest || !latest.lastStep) {
+              return instance;
+            }
+            const role = getRoleById(prev.roles, prev.currentRoleId);
+            const isAdmin = isProjectAdmin(prev.currentRoleId);
+            if (!isAdmin && (!role || latest.toGroup !== role.group)) {
+              return instance;
+            }
+            if (!toGroup || toGroup === latest.toGroup) {
+              return instance;
+            }
+            const template = getTemplateById(prev.templates, instance.templateId);
+            const action = template?.actions.find((item) => item.id === latest.actionId);
+            const canDelegate = Boolean(latest.allowDelegate ?? action?.allowDelegate);
+            if (!canDelegate) {
+              return instance;
+            }
+            if (action?.toCandidateGroups?.length && !action.toCandidateGroups.includes(toGroup)) {
+              return instance;
+            }
+            const entry = {
+              fromGroup: latest.toGroup,
+              toGroup,
+              byRoleId: prev.currentRoleId,
+              at: todayISO(),
+              note: note ? note.trim() : '',
+            };
+            const nextSteps = instance.steps.map((step) => {
+              if (step.id !== latest.id) {
+                return step;
+              }
+              const nextCcRoleIds = step.ccRoleIds || [];
+              const updatedCcRoleIds = nextCcRoleIds.includes(prev.currentRoleId)
+                ? nextCcRoleIds
+                : [...nextCcRoleIds, prev.currentRoleId];
+              return {
+                ...step,
+                toGroup,
+                openedAt: '',
+                ccRoleIds: updatedCcRoleIds,
+                delegationHistory: [...(step.delegationHistory || []), entry],
+              };
+            });
+            return { ...instance, steps: nextSteps };
+          }),
+        }));
+      },
       sendAction({ instanceId, action, toGroup, message }) {
         setState((prev) => ({
           ...prev,
@@ -137,11 +223,12 @@ export function AppProvider({ children }) {
               return instance;
             }
             const role = getRoleById(prev.roles, prev.currentRoleId);
-            if (!action.allowedRoles.includes(prev.currentRoleId)) {
+            const isAdmin = isProjectAdmin(prev.currentRoleId);
+            if (!action.allowedRoles.includes(prev.currentRoleId) && !isAdmin) {
               return instance;
             }
             if (!instance.steps || instance.steps.length === 0) {
-              if (instance.createdBy !== prev.currentRoleId) {
+              if (instance.createdBy !== prev.currentRoleId && !isAdmin) {
                 return instance;
               }
             } else {
@@ -149,7 +236,7 @@ export function AppProvider({ children }) {
               if (!latest || !latest.lastStep) {
                 return instance;
               }
-              if (!role || latest.toGroup !== role.group) {
+              if (!isAdmin && (!role || latest.toGroup !== role.group)) {
                 return instance;
               }
             }
@@ -168,14 +255,17 @@ export function AppProvider({ children }) {
             const dueDate = action.dueDays ? addDays(sentAt, action.dueDays) : '';
             const shouldBumpRevision =
               action.id === 'csf-aip' || action.id === 'csf-not-approved';
+            const draftAttachments = instance.attachments.filter((attachment) => !attachment.stepId);
+            const timestamp = Date.now();
+            const newStepId = `step-${timestamp}`;
             const attachmentStatuses = action.requiresAttachmentStatus
-              ? instance.attachments.map((attachment) => ({
+              ? draftAttachments.map((attachment) => ({
                   id: attachment.id,
                   status: attachment.status,
                 }))
               : [];
             const newStep = {
-              id: `step-${Date.now()}`,
+              id: newStepId,
               actionId: action.id,
               actionLabel: action.label,
               fromRoleId: prev.currentRoleId,
@@ -184,17 +274,25 @@ export function AppProvider({ children }) {
               openedAt: '',
               dueDate,
               lastStep: action.lastStep,
+              allowDelegate: Boolean(action.allowDelegate),
               requiresAttachmentStatus: action.requiresAttachmentStatus,
               attachmentStatuses,
+              ccRoleIds: action.ccRoleIds || [],
               message: message || '',
             };
-            const nextAttachments = shouldBumpRevision
-              ? instance.attachments.map((attachment) => ({
+            const sentAttachments = instance.attachments.map((attachment) =>
+              attachment.stepId ? attachment : { ...attachment, stepId: newStepId }
+            );
+            const bumpedDraftAttachments = shouldBumpRevision
+              ? draftAttachments.map((attachment, index) => ({
                   ...attachment,
+                  id: `att-${timestamp}-${index}`,
                   revision: bumpRevision(attachment.revision),
                   status: '',
+                  stepId: '',
                 }))
-              : instance.attachments;
+              : [];
+            const nextAttachments = [...sentAttachments, ...bumpedDraftAttachments];
             return {
               ...instance,
               status: action.closeInstance ? 'Closed' : 'Open',

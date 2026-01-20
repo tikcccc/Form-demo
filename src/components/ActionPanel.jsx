@@ -11,6 +11,7 @@ export default function ActionPanel({
   onMessageChange,
   onSend,
   attachmentsReady,
+  messageRequired = false,
   formValid = true,
   showFormErrors = false,
 }) {
@@ -18,11 +19,14 @@ export default function ActionPanel({
   const toOptions = selectedAction
     ? selectedAction.toCandidateGroups.map((group) => ({ value: group, label: group }))
     : [];
+  const trimmedMessage = message ? message.trim() : '';
+  const messageMissing = messageRequired && !trimmedMessage;
   const canSend = Boolean(
     selectedAction &&
       selectedToGroup &&
       (!selectedAction.requiresAttachmentStatus || attachmentsReady) &&
-      formValid
+      formValid &&
+      !messageMissing
   );
 
   return (
@@ -42,10 +46,11 @@ export default function ActionPanel({
           disabled={!selectedAction}
         />
         <Input.TextArea
-          placeholder="Message (optional)"
+          placeholder={messageRequired ? 'Reply message (required)' : 'Message (optional)'}
           autoSize
           value={message}
           onChange={onMessageChange}
+          required={messageRequired}
         />
         {selectedAction && (
           <Space wrap>
@@ -54,6 +59,9 @@ export default function ActionPanel({
             {selectedAction.requiresAttachmentStatus ? <Tag color="blue">Attachment status</Tag> : null}
             {selectedAction.closeInstance ? <Tag color="red">Closes workflow</Tag> : null}
           </Space>
+        )}
+        {selectedAction && messageMissing && (
+          <Alert type="warning" content="Reply message is required." />
         )}
         {selectedAction && selectedAction.requiresAttachmentStatus && !attachmentsReady && (
           <Alert type="warning" content="Set status for all attachments before sending." />

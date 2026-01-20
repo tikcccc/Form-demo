@@ -16,6 +16,11 @@ export default function TimelinePanel({ instance, roles }) {
       {instance.steps.map((step) => {
         const fromLabel = getRoleById(roles, step.fromRoleId)?.label || step.fromRoleId;
         const partial = isPartialForStep(instance, step);
+        const delegationHistory = step.delegationHistory || [];
+        const latestDelegation = delegationHistory[delegationHistory.length - 1];
+        const delegateByLabel = latestDelegation
+          ? getRoleById(roles, latestDelegation.byRoleId)?.label || latestDelegation.byRoleId
+          : '';
         return (
           <div key={step.id} className="timeline-item">
             <Space direction="vertical" size={4} style={{ width: '100%' }}>
@@ -34,6 +39,14 @@ export default function TimelinePanel({ instance, roles }) {
               </Space>
               {step.message ? (
                 <Typography.Text className="muted">Message: {step.message}</Typography.Text>
+              ) : null}
+              {latestDelegation ? (
+                <Typography.Text className="muted">
+                  Delegated {latestDelegation.fromGroup || '-'} → {latestDelegation.toGroup || '-'}
+                  {delegateByLabel ? ` by ${delegateByLabel}` : ''}
+                  {latestDelegation.at ? ` on ${latestDelegation.at}` : ''}
+                  {latestDelegation.note ? ` - Note: ${latestDelegation.note}` : ''}
+                </Typography.Text>
               ) : null}
             </Space>
           </div>

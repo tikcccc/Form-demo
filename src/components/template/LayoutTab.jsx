@@ -104,59 +104,87 @@ export default function LayoutTab({ template }) {
     <Row gutter={16} style={{ width: '100%' }}>
       <Col span={10}>
         <Space direction="vertical" size={16} style={{ width: '100%' }}>
-          <Card className="panel-card" title="Sections" bordered={false}>
+          <Card
+            className="panel-card"
+            title="Sections"
+            bordered={false}
+            extra={
+              <Button type="primary" size="small" onClick={() => setModalVisible(true)}>
+                New Section
+              </Button>
+            }
+          >
             <Space direction="vertical" size={8} style={{ width: '100%' }}>
-              {template.layout.sections.map((section) => (
-                <Button
-                  key={section.id}
-                  type={section.id === selectedSectionId ? 'primary' : 'secondary'}
-                  onClick={() => setSelectedSectionId(section.id)}
-                >
-                  {section.name}
-                </Button>
-              ))}
-              <Button onClick={() => setModalVisible(true)}>Add Section</Button>
+              <Typography.Text className="muted">
+                Sections render as cards in the form. Order here controls the final layout.
+              </Typography.Text>
+              {template.layout.sections.length === 0 ? (
+                <Typography.Text className="muted">No sections yet.</Typography.Text>
+              ) : (
+                template.layout.sections.map((section) => (
+                  <Button
+                    key={section.id}
+                    type={section.id === selectedSectionId ? 'primary' : 'secondary'}
+                    onClick={() => setSelectedSectionId(section.id)}
+                    style={{ width: '100%', justifyContent: 'flex-start', textAlign: 'left' }}
+                  >
+                    <Typography.Text>{section.name}</Typography.Text>
+                  </Button>
+                ))
+              )}
             </Space>
           </Card>
           {selectedSection && (
             <Card className="panel-card" title="Section Settings" bordered={false}>
               <Space direction="vertical" size={12} style={{ width: '100%' }}>
+                <Typography.Text className="muted">
+                  Configure what appears in this section and when it should be visible.
+                </Typography.Text>
                 <Input
                   value={selectedSection.name}
                   onChange={(value) => updateSection({ name: value })}
                   placeholder="Section name"
                 />
                 <Space direction="vertical" size={6} style={{ width: '100%' }}>
-                  <Typography.Text className="muted">Fields</Typography.Text>
+                  <Typography.Text className="muted">Fields in this section</Typography.Text>
                   <Select
-                    placeholder="Add field"
+                    placeholder="Add field to section"
                     onChange={addField}
                     options={fieldOptions}
                   />
-                  <Space direction="vertical" size={4} style={{ width: '100%' }}>
-                    {selectedSection.fields.map((fieldKey, index) => {
-                      const field = template.schema.find((item) => item.key === fieldKey);
-                      return (
-                        <Space key={fieldKey} style={{ width: '100%', justifyContent: 'space-between' }}>
-                          <Tag>{field?.label || fieldKey}</Tag>
-                          <Space>
-                            <Button size="mini" onClick={() => moveField(index, -1)}>
-                              Up
-                            </Button>
-                            <Button size="mini" onClick={() => moveField(index, 1)}>
-                              Down
-                            </Button>
-                            <Button size="mini" status="danger" onClick={() => removeField(fieldKey)}>
-                              Remove
-                            </Button>
+                  {selectedSection.fields.length === 0 ? (
+                    <Typography.Text className="muted">
+                      No fields yet. Add from the dropdown above.
+                    </Typography.Text>
+                  ) : (
+                    <Space direction="vertical" size={4} style={{ width: '100%' }}>
+                      {selectedSection.fields.map((fieldKey, index) => {
+                        const field = template.schema.find((item) => item.key === fieldKey);
+                        return (
+                          <Space key={fieldKey} style={{ width: '100%', justifyContent: 'space-between' }}>
+                            <Tag>{field?.label || fieldKey}</Tag>
+                            <Space>
+                              <Button size="mini" onClick={() => moveField(index, -1)}>
+                                Up
+                              </Button>
+                              <Button size="mini" onClick={() => moveField(index, 1)}>
+                                Down
+                              </Button>
+                              <Button size="mini" status="danger" onClick={() => removeField(fieldKey)}>
+                                Remove
+                              </Button>
+                            </Space>
                           </Space>
-                        </Space>
-                      );
-                    })}
-                  </Space>
+                        );
+                      })}
+                    </Space>
+                  )}
                 </Space>
                 <Space direction="vertical" size={6} style={{ width: '100%' }}>
                   <Typography.Text className="muted">Visible When</Typography.Text>
+                  <Typography.Text className="muted">
+                    Show this section only when the selected field equals the value.
+                  </Typography.Text>
                   <Space style={{ width: '100%' }}>
                     <Select
                       placeholder="Field"
@@ -199,10 +227,10 @@ export default function LayoutTab({ template }) {
       </Col>
       <Modal
         visible={modalVisible}
-        title="Add Section"
+        title="New Section"
         onOk={addSection}
         onCancel={() => setModalVisible(false)}
-        okText="Add"
+        okText="Create"
       >
         <Input
           placeholder="Section name"

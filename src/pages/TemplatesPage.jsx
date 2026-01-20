@@ -80,7 +80,7 @@ export default function TemplatesPage() {
           <Space direction="vertical" size={4}>
             <Typography.Text className="muted">Settings</Typography.Text>
             <Typography.Title heading={4} style={{ margin: 0 }}>
-              Types
+              Templates
             </Typography.Title>
           </Space>
           <Space>

@@ -30,8 +30,10 @@ export default function ActionsTab({ template }) {
     label: '',
     allowedRoles: [],
     toCandidateGroups: [],
+    ccRoleIds: [],
     dueDays: 0,
     lastStep: false,
+    allowDelegate: false,
     requiresAttachmentStatus: false,
     closeInstance: false,
     statusSet: [],
@@ -45,8 +47,10 @@ export default function ActionsTab({ template }) {
         label: action.label,
         allowedRoles: action.allowedRoles,
         toCandidateGroups: action.toCandidateGroups,
+        ccRoleIds: action.ccRoleIds || [],
         dueDays: action.dueDays || 0,
         lastStep: Boolean(action.lastStep),
+        allowDelegate: Boolean(action.allowDelegate),
         requiresAttachmentStatus: Boolean(action.requiresAttachmentStatus),
         closeInstance: Boolean(action.closeInstance),
         statusSet: action.statusSet || [],
@@ -58,8 +62,10 @@ export default function ActionsTab({ template }) {
         label: '',
         allowedRoles: [],
         toCandidateGroups: [],
+        ccRoleIds: [],
         dueDays: 0,
         lastStep: false,
+        allowDelegate: false,
         requiresAttachmentStatus: false,
         closeInstance: false,
         statusSet: [],
@@ -84,14 +90,17 @@ export default function ActionsTab({ template }) {
     const nextActionIds = editingAction?.nextActionIds || [];
     const isStart = Boolean(editingAction?.isStart);
     const lastStep = formState.closeInstance ? false : formState.lastStep;
+    const allowDelegate = lastStep ? formState.allowDelegate : false;
     const nextAction = {
       ...(editingAction || {}),
       id: editingAction?.id || `action-${Date.now()}`,
       label: formState.label.trim(),
       allowedRoles: formState.allowedRoles,
       toCandidateGroups: formState.toCandidateGroups,
+      ccRoleIds: formState.ccRoleIds,
       dueDays: formState.dueDays || 0,
       lastStep,
+      allowDelegate,
       requiresAttachmentStatus: formState.requiresAttachmentStatus,
       closeInstance: formState.closeInstance,
       statusSet: formState.requiresAttachmentStatus ? formState.statusSet : [],
@@ -228,12 +237,22 @@ export default function ActionsTab({ template }) {
       render: (_, record) => record.toCandidateGroups.join(', '),
     },
     {
+      title: 'CC Roles',
+      render: (_, record) => (record.ccRoleIds && record.ccRoleIds.length > 0
+        ? record.ccRoleIds.join(', ')
+        : '—'),
+    },
+    {
       title: 'Due Days',
       dataIndex: 'dueDays',
     },
     {
       title: 'Require Reply',
       render: (_, record) => (record.lastStep ? 'Yes' : 'No'),
+    },
+    {
+      title: 'Allow Delegate',
+      render: (_, record) => (record.allowDelegate ? 'Yes' : 'No'),
     },
     {
       title: 'Attachment Status',
@@ -352,6 +371,12 @@ export default function ActionsTab({ template }) {
                           : <Tag>—</Tag>}
                       </Space>
                       <Space wrap>
+                        <Typography.Text className="muted">CC</Typography.Text>
+                        {action.ccRoleIds?.length
+                          ? action.ccRoleIds.map((role) => <Tag key={role}>{role}</Tag>)
+                          : <Tag>—</Tag>}
+                      </Space>
+                      <Space wrap>
                         <Tag color={action.lastStep ? 'blue' : undefined}>
                           Require Reply: {action.lastStep ? 'Yes' : 'No'}
                         </Tag>
@@ -426,6 +451,14 @@ export default function ActionsTab({ template }) {
               onChange={(value) => setFormState({ ...formState, toCandidateGroups: value })}
             />
           </Form.Item>
+          <Form.Item label="CC Roles">
+            <Select
+              mode="multiple"
+              options={roleOptions}
+              value={formState.ccRoleIds}
+              onChange={(value) => setFormState({ ...formState, ccRoleIds: value })}
+            />
+          </Form.Item>
           <Form.Item label="Due Days">
             <InputNumber
               min={0}
@@ -441,6 +474,17 @@ export default function ActionsTab({ template }) {
                   ...formState,
                   lastStep: value,
                   closeInstance: value ? false : formState.closeInstance,
+                })
+              }
+            />
+          </Form.Item>
+          <Form.Item label="Allow Delegate">
+            <Switch
+              checked={formState.allowDelegate}
+              onChange={(value) =>
+                setFormState({
+                  ...formState,
+                  allowDelegate: value,
                 })
               }
             />

@@ -4,8 +4,10 @@ import {
   addDays,
   buildDefaultFormData,
   bumpRevision,
+  getAvailableActionsForInstance,
   getLatestSentStep,
   getNextTransmittalNo,
+  getRoleById,
   getTemplateById,
   todayISO,
 } from '../utils/workflow.js';
@@ -134,6 +136,34 @@ export function AppProvider({ children }) {
             if (instance.id !== instanceId) {
               return instance;
             }
+            const role = getRoleById(prev.roles, prev.currentRoleId);
+            if (!action.allowedRoles.includes(prev.currentRoleId)) {
+              return instance;
+            }
+            if (!instance.steps || instance.steps.length === 0) {
+              if (instance.createdBy !== prev.currentRoleId) {
+                return instance;
+              }
+            } else {
+              const latest = getLatestSentStep(instance);
+              if (!latest || !latest.lastStep) {
+                return instance;
+              }
+              if (!role || latest.toGroup !== role.group) {
+                return instance;
+              }
+            }
+            const template = getTemplateById(prev.templates, instance.templateId);
+            if (template?.actionFlowEnabled) {
+              const allowedActions = getAvailableActionsForInstance(
+                template,
+                prev.currentRoleId,
+                instance
+              );
+              if (!allowedActions.some((item) => item.id === action.id)) {
+                return instance;
+              }
+            }
             const sentAt = todayISO();
             const dueDate = action.dueDays ? addDays(sentAt, action.dueDays) : '';
             const shouldBumpRevision =
@@ -222,6 +252,7 @@ export function AppProvider({ children }) {
                 schema: [],
                 layout: { sections: [] },
                 actions: [],
+                actionFlowEnabled: false,
               };
           return {
             ...prev,

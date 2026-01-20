@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import {
   Button,
+  Card,
   Drawer,
   Form,
   Input,
@@ -11,6 +12,8 @@ import {
   Space,
   Switch,
   Table,
+  Tag,
+  Typography,
 } from '@arco-design/web-react';
 import { useAppContext } from '../../store/AppContext.jsx';
 
@@ -21,6 +24,8 @@ export default function ActionsTab({ template }) {
   const [drawerVisible, setDrawerVisible] = useState(false);
   const [editingAction, setEditingAction] = useState(null);
   const [isNewAction, setIsNewAction] = useState(false);
+  const [draggingActionId, setDraggingActionId] = useState('');
+  const [dragOverActionId, setDragOverActionId] = useState('');
   const [formState, setFormState] = useState({
     label: '',
     allowedRoles: [],
@@ -76,6 +81,9 @@ export default function ActionsTab({ template }) {
       Message.warning('Select at least one recipient group.');
       return;
     }
+    const nextActionIds = editingAction?.nextActionIds || [];
+    const isStart = Boolean(editingAction?.isStart);
+    const lastStep = formState.closeInstance ? false : formState.lastStep;
     const nextAction = {
       ...(editingAction || {}),
       id: editingAction?.id || `action-${Date.now()}`,
@@ -83,10 +91,12 @@ export default function ActionsTab({ template }) {
       allowedRoles: formState.allowedRoles,
       toCandidateGroups: formState.toCandidateGroups,
       dueDays: formState.dueDays || 0,
-      lastStep: formState.lastStep,
+      lastStep,
       requiresAttachmentStatus: formState.requiresAttachmentStatus,
       closeInstance: formState.closeInstance,
       statusSet: formState.requiresAttachmentStatus ? formState.statusSet : [],
+      nextActionIds,
+      isStart,
     };
     actions.updateTemplate(template.id, (current) => {
       const nextActions = editingAction
@@ -100,11 +110,114 @@ export default function ActionsTab({ template }) {
   const handleDelete = (actionId) => {
     actions.updateTemplate(template.id, (current) => ({
       ...current,
-      actions: current.actions.filter((action) => action.id !== actionId),
+      actions: current.actions
+        .filter((action) => action.id !== actionId)
+        .map((action) =>
+          action.nextActionIds
+            ? { ...action, nextActionIds: action.nextActionIds.filter((id) => id !== actionId) }
+            : action
+        ),
     }));
   };
 
+  const actionOptions = template.actions.map((action) => ({
+    value: action.id,
+    label: action.label,
+  }));
+
+  const updateActionFlow = (actionId, updates) => {
+    actions.updateTemplate(template.id, (current) => ({
+      ...current,
+      actions: current.actions.map((action) =>
+        action.id === actionId ? { ...action, ...updates } : action
+      ),
+    }));
+  };
+
+  const setStartAction = (actionId, value) => {
+    actions.updateTemplate(template.id, (current) => ({
+      ...current,
+      actions: current.actions.map((action) => {
+        if (action.id === actionId) {
+          return { ...action, isStart: value };
+        }
+        return value ? { ...action, isStart: false } : action;
+      }),
+    }));
+  };
+
+  const toggleFlow = (value) => {
+    actions.updateTemplate(template.id, (current) => ({
+      ...current,
+      actionFlowEnabled: value,
+    }));
+  };
+
+  const flowEnabled = Boolean(template.actionFlowEnabled);
+
+  const moveAction = (sourceId, targetId) => {
+    if (!sourceId || !targetId || sourceId === targetId) {
+      return;
+    }
+    actions.updateTemplate(template.id, (current) => {
+      const nextActions = [...current.actions];
+      const sourceIndex = nextActions.findIndex((action) => action.id === sourceId);
+      const targetIndex = nextActions.findIndex((action) => action.id === targetId);
+      if (sourceIndex < 0 || targetIndex < 0) {
+        return current;
+      }
+      const [moved] = nextActions.splice(sourceIndex, 1);
+      const insertIndex = targetIndex;
+      nextActions.splice(insertIndex, 0, moved);
+      return { ...current, actions: nextActions };
+    });
+  };
+
+  const handleDragStart = (actionId) => (event) => {
+    setDraggingActionId(actionId);
+    event.dataTransfer.effectAllowed = 'move';
+    event.dataTransfer.setData('text/plain', actionId);
+  };
+
+  const handleDragOver = (actionId) => (event) => {
+    event.preventDefault();
+    if (dragOverActionId !== actionId) {
+      setDragOverActionId(actionId);
+    }
+    event.dataTransfer.dropEffect = 'move';
+  };
+
+  const handleDrop = (actionId) => (event) => {
+    event.preventDefault();
+    const sourceId = draggingActionId || event.dataTransfer.getData('text/plain');
+    if (sourceId && sourceId !== actionId) {
+      moveAction(sourceId, actionId);
+    }
+    setDraggingActionId('');
+    setDragOverActionId('');
+  };
+
+  const handleDragEnd = () => {
+    setDraggingActionId('');
+    setDragOverActionId('');
+  };
+
   const columns = [
+    {
+      title: 'Order',
+      width: 72,
+      render: (_, record) => (
+        <Typography.Text
+          className="muted"
+          draggable
+          onDragStart={handleDragStart(record.id)}
+          onDragEnd={handleDragEnd}
+          style={{ cursor: 'grab' }}
+        >
+          Drag
+        </Typography.Text>
+      ),
+    },
     { title: 'Action', dataIndex: 'label' },
     {
       title: 'Allowed Roles',
@@ -157,12 +270,131 @@ export default function ActionsTab({ template }) {
     (group) => ({ value: group, label: group })
   );
 
+  const rowProps = (record) => {
+    const isDropTarget =
+      dragOverActionId === record.id && draggingActionId && draggingActionId !== record.id;
+    return {
+      onDragOver: handleDragOver(record.id),
+      onDrop: handleDrop(record.id),
+      style: isDropTarget ? { outline: '1px dashed #94a3b8' } : undefined,
+    };
+  };
+
   return (
     <Space direction="vertical" size={16} style={{ width: '100%' }}>
       <Button type="primary" onClick={() => openDrawer(null)}>
         Add Action
       </Button>
-      <Table rowKey="id" columns={columns} data={template.actions} pagination={false} />
+      <Table
+        rowKey="id"
+        columns={columns}
+        data={template.actions}
+        pagination={false}
+        onRow={rowProps}
+      />
+      <Card className="panel-card" title="Flow" bordered={false}>
+        <Space direction="vertical" size={12} style={{ width: '100%' }}>
+          <Space>
+            <Switch checked={flowEnabled} onChange={toggleFlow} />
+            <Typography.Text>Enable action flow constraints</Typography.Text>
+          </Space>
+          {!flowEnabled ? (
+            <Typography.Text className="muted">
+              Flow mapping is disabled. The current action logic remains unchanged.
+            </Typography.Text>
+          ) : template.actions.length === 0 ? (
+            <Typography.Text className="muted">Add actions to configure the flow.</Typography.Text>
+          ) : (
+            <Space direction="vertical" size={12} style={{ width: '100%' }}>
+              {template.actions.map((action) => {
+                const nextOptions = actionOptions.filter((option) => option.value !== action.id);
+                const rawNextIds = action.nextActionIds || [];
+                const validNextIds = rawNextIds.filter(
+                  (id) => id !== action.id && nextOptions.some((option) => option.value === id)
+                );
+                const canConfigure = action.lastStep && !action.closeInstance;
+                const disabled = !canConfigure || nextOptions.length === 0;
+                const isDropTarget =
+                  dragOverActionId === action.id &&
+                  draggingActionId &&
+                  draggingActionId !== action.id;
+
+                return (
+                  <Card
+                    key={action.id}
+                    bordered
+                    title={action.label}
+                    extra={
+                      <Typography.Text
+                        className="muted"
+                        draggable
+                        onDragStart={handleDragStart(action.id)}
+                        onDragEnd={handleDragEnd}
+                      >
+                        Drag
+                      </Typography.Text>
+                    }
+                    onDragOver={handleDragOver(action.id)}
+                    onDrop={handleDrop(action.id)}
+                    style={isDropTarget ? { outline: '1px dashed #94a3b8' } : undefined}
+                  >
+                    <Space direction="vertical" size={8} style={{ width: '100%' }}>
+                      <Space wrap>
+                        <Typography.Text className="muted">Roles</Typography.Text>
+                        {action.allowedRoles?.length
+                          ? action.allowedRoles.map((role) => <Tag key={role}>{role}</Tag>)
+                          : <Tag>—</Tag>}
+                      </Space>
+                      <Space wrap>
+                        <Typography.Text className="muted">To</Typography.Text>
+                        {action.toCandidateGroups?.length
+                          ? action.toCandidateGroups.map((group) => <Tag key={group}>{group}</Tag>)
+                          : <Tag>—</Tag>}
+                      </Space>
+                      <Space wrap>
+                        <Tag color={action.lastStep ? 'blue' : undefined}>
+                          Require Reply: {action.lastStep ? 'Yes' : 'No'}
+                        </Tag>
+                        <Tag color={action.closeInstance ? 'red' : undefined}>
+                          Close Workflow: {action.closeInstance ? 'Yes' : 'No'}
+                        </Tag>
+                        {action.requiresAttachmentStatus ? (
+                          <Tag color="gold">Attachment Status Required</Tag>
+                        ) : null}
+                      </Space>
+                      {action.closeInstance ? (
+                        <Typography.Text className="muted">
+                          Close Workflow disables Require Reply.
+                        </Typography.Text>
+                      ) : null}
+                      <Space>
+                        <Switch
+                          checked={Boolean(action.isStart)}
+                          onChange={(value) => setStartAction(action.id, value)}
+                        />
+                        <Typography.Text>Start action</Typography.Text>
+                      </Space>
+                      <Select
+                        mode="multiple"
+                        placeholder={disabled ? 'No next actions available' : 'Select next actions'}
+                        options={nextOptions}
+                        value={validNextIds}
+                        onChange={(value) => updateActionFlow(action.id, { nextActionIds: value })}
+                        disabled={disabled}
+                      />
+                      {!canConfigure && (
+                        <Typography.Text className="muted">
+                          Next actions are only configurable when Require Reply is on and Close Workflow is off.
+                        </Typography.Text>
+                      )}
+                    </Space>
+                  </Card>
+                );
+              })}
+            </Space>
+          )}
+        </Space>
+      </Card>
       <Drawer
         width={460}
         visible={drawerVisible}
@@ -204,7 +436,13 @@ export default function ActionsTab({ template }) {
           <Form.Item label="Require Reply">
             <Switch
               checked={formState.lastStep}
-              onChange={(value) => setFormState({ ...formState, lastStep: value })}
+              onChange={(value) =>
+                setFormState({
+                  ...formState,
+                  lastStep: value,
+                  closeInstance: value ? false : formState.closeInstance,
+                })
+              }
             />
           </Form.Item>
           <Form.Item label="Requires Attachment Status">
@@ -232,7 +470,13 @@ export default function ActionsTab({ template }) {
           <Form.Item label="Close Workflow">
             <Switch
               checked={formState.closeInstance}
-              onChange={(value) => setFormState({ ...formState, closeInstance: value })}
+              onChange={(value) =>
+                setFormState({
+                  ...formState,
+                  closeInstance: value,
+                  lastStep: value ? false : formState.lastStep,
+                })
+              }
             />
           </Form.Item>
         </Form>

@@ -1,12 +1,12 @@
 import React from 'react';
 import { Button, Card, Space, Tabs, Typography } from '@arco-design/web-react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { Navigate, useNavigate, useParams } from 'react-router-dom';
 import SchemaTab from '../components/template/SchemaTab.jsx';
 import LayoutTab from '../components/template/LayoutTab.jsx';
 import ActionsTab from '../components/template/ActionsTab.jsx';
 import PublishTab from '../components/template/PublishTab.jsx';
 import { useAppContext } from '../store/AppContext.jsx';
-import { getTemplateById } from '../utils/workflow.js';
+import { getTemplateById, isProjectAdmin } from '../utils/workflow.js';
 
 const { TabPane } = Tabs;
 
@@ -16,6 +16,11 @@ export default function TemplateEditorPage() {
   const navigate = useNavigate();
 
   const template = getTemplateById(state.templates, templateId);
+  const isAdmin = isProjectAdmin(state.currentRoleId);
+
+  if (!isAdmin) {
+    return <Navigate to="/workflows" replace />;
+  }
 
   if (!template) {
     return <Typography.Text>Type not found.</Typography.Text>;

@@ -20,19 +20,10 @@ export default function AppHeader() {
         onClickMenuItem={(key) => navigate(`/${key}`)}
       >
         <Menu.Item key="workflows">Workflows</Menu.Item>
-        <Menu.Item key="settings">Settings</Menu.Item>
+        {state.currentRoleId === 'project-admin' && <Menu.Item key="settings">Settings</Menu.Item>}
       </Menu>
       <div className="header-right">
         <Space>
-          <Select
-            size="small"
-            value={state.currentProjectId}
-            onChange={actions.setProject}
-            options={state.projects.map((project) => ({
-              value: project.id,
-              label: project.name,
-            }))}
-          />
           <Select
             size="small"
             value={state.currentRoleId}

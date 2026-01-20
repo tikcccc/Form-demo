@@ -4,6 +4,7 @@ export const projects = [
 ];
 
 export const roles = [
+  { id: 'project-admin', label: 'Admin', group: 'Admin' },
   { id: 'contractor', label: 'Contractor', group: 'Contractor' },
   { id: 'mtr', label: 'MTR', group: 'MTR' },
   { id: 'scone', label: 'SConE', group: 'SConE' },
@@ -15,6 +16,7 @@ export const templates = [
     id: 'rfi-default',
     name: 'RFI',
     published: true,
+    actionFlowEnabled: true,
     schema: [
       { key: 'title', label: 'Title', type: 'text', required: true, listColumn: true },
       { key: 'subject', label: 'Subject', type: 'text', required: true, listColumn: true },
@@ -66,12 +68,14 @@ export const templates = [
       {
         id: 'rfi-send',
         label: 'Send',
+        isStart: true,
         allowedRoles: ['contractor'],
         toCandidateGroups: ['MTR', 'SConE', 'CM'],
         dueDays: 3,
         lastStep: true,
         requiresAttachmentStatus: false,
         closeInstance: false,
+        nextActionIds: ['rfi-reply'],
       },
       {
         id: 'rfi-reply',
@@ -89,6 +93,7 @@ export const templates = [
     id: 'cor-default',
     name: 'COR',
     published: true,
+    actionFlowEnabled: true,
     schema: [
       { key: 'title', label: 'Title', type: 'text', required: true, listColumn: true },
       {
@@ -120,12 +125,25 @@ export const templates = [
       {
         id: 'cor-submit',
         label: 'Submit',
+        isStart: true,
         allowedRoles: ['contractor'],
         toCandidateGroups: ['CM', 'MTR'],
         dueDays: 5,
         lastStep: true,
         requiresAttachmentStatus: false,
         closeInstance: false,
+        nextActionIds: ['cor-final', 'cor-request'],
+      },
+      {
+        id: 'cor-request',
+        label: 'Send (Require Response)',
+        allowedRoles: ['cm', 'mtr'],
+        toCandidateGroups: ['Contractor'],
+        dueDays: 2,
+        lastStep: true,
+        requiresAttachmentStatus: false,
+        closeInstance: false,
+        nextActionIds: ['cor-submit'],
       },
       {
         id: 'cor-final',
@@ -143,6 +161,7 @@ export const templates = [
     id: 'csf-default',
     name: 'CSF',
     published: true,
+    actionFlowEnabled: true,
     schema: [
       { key: 'title', label: 'Title', type: 'text', required: true, listColumn: true },
       {
@@ -176,12 +195,14 @@ export const templates = [
       {
         id: 'csf-submit',
         label: 'Submit',
+        isStart: true,
         allowedRoles: ['contractor'],
         toCandidateGroups: ['MTR', 'CM'],
         dueDays: 4,
         lastStep: true,
         requiresAttachmentStatus: false,
         closeInstance: false,
+        nextActionIds: ['csf-approved', 'csf-aip', 'csf-not-approved'],
       },
       {
         id: 'csf-approved',
@@ -204,6 +225,7 @@ export const templates = [
         requiresAttachmentStatus: true,
         closeInstance: false,
         statusSet: ['AIP', 'Rejected'],
+        nextActionIds: ['csf-submit'],
       },
       {
         id: 'csf-not-approved',
@@ -215,6 +237,7 @@ export const templates = [
         requiresAttachmentStatus: true,
         closeInstance: false,
         statusSet: ['Rejected'],
+        nextActionIds: ['csf-submit'],
       },
     ],
   },

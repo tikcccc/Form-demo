@@ -5,6 +5,7 @@ import {
   getCurrentTo,
   getDueDate,
   getLatestSentStep,
+  getLoopCount,
   getTemplateById,
   isInbox,
   isOverdue,
@@ -30,6 +31,14 @@ export default function WorkflowTable({ instances, templates, roles, currentRole
       title: 'Type',
       dataIndex: 'templateId',
       render: (templateId) => getTemplateById(templates, templateId)?.name || templateId,
+    },
+    {
+      title: 'Loop',
+      render: (_, record) => {
+        const template = getTemplateById(templates, record.templateId);
+        const loopCount = getLoopCount(template, record);
+        return <Tag>Loop {loopCount}</Tag>;
+      },
     },
     {
       title: 'Title',

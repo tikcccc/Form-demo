@@ -1,14 +1,20 @@
 import React, { useMemo, useState } from 'react';
 import { Button, Card, Input, Space, Table, Tag, Typography } from '@arco-design/web-react';
-import { useNavigate } from 'react-router-dom';
+import { Navigate, useNavigate } from 'react-router-dom';
 import CreateTemplateModal from '../components/CreateTemplateModal.jsx';
 import { useAppContext } from '../store/AppContext.jsx';
+import { isProjectAdmin } from '../utils/workflow.js';
 
 export default function TemplatesPage() {
   const { state, actions } = useAppContext();
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const [modalVisible, setModalVisible] = useState(false);
+  const isAdmin = isProjectAdmin(state.currentRoleId);
+
+  if (!isAdmin) {
+    return <Navigate to="/workflows" replace />;
+  }
 
   const filteredTemplates = useMemo(() => {
     let data = [...state.templates];
@@ -78,6 +84,7 @@ export default function TemplatesPage() {
             </Typography.Title>
           </Space>
           <Space>
+            <Button onClick={() => navigate('/workflows')}>Back to Workflows</Button>
             <Button onClick={actions.resetData}>Reset to Starter Pack</Button>
             <Button type="primary" onClick={() => setModalVisible(true)}>
               Create Type

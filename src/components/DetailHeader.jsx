@@ -5,6 +5,7 @@ import StatusTag from './StatusTag.jsx';
 export default function DetailHeader({
   instance,
   templateName,
+  loopCount,
   createdByLabel,
   currentTo,
   dueDate,
@@ -29,6 +30,7 @@ export default function DetailHeader({
           <Descriptions.Item label="Created At">{instance.createdAt}</Descriptions.Item>
           <Descriptions.Item label="Current To">{currentTo}</Descriptions.Item>
           <Descriptions.Item label="Due Date">{dueDate || '—'}</Descriptions.Item>
+          <Descriptions.Item label="Loop">{loopCount || 1}</Descriptions.Item>
         </Descriptions>
       </Space>
     </Card>

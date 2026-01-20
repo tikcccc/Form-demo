@@ -9,10 +9,12 @@ import TimelinePanel from '../components/TimelinePanel.jsx';
 import { useAppContext } from '../store/AppContext.jsx';
 import {
   areAttachmentStatusesComplete,
-  getAvailableActions,
+  canViewInstance,
+  getAvailableActionsForInstance,
   getCurrentTo,
   getDueDate,
   getLatestSentStep,
+  getLoopCount,
   getRoleById,
   getTemplateById,
   isInbox,
@@ -25,6 +27,9 @@ export default function WorkflowDetailPage() {
   const { instanceId } = useParams();
   const navigate = useNavigate();
   const instance = state.instances.find((item) => item.id === instanceId);
+  const canView = instance
+    ? canViewInstance(instance, state.currentRoleId, state.roles)
+    : false;
 
   const [selectedActionId, setSelectedActionId] = useState('');
   const [selectedToGroup, setSelectedToGroup] = useState('');
@@ -37,9 +42,10 @@ export default function WorkflowDetailPage() {
   }, [instanceId]);
 
   const template = getTemplateById(state.templates, instance?.templateId);
+  const loopCount = getLoopCount(template, instance);
   const availableActions = useMemo(
-    () => getAvailableActions(template, state.currentRoleId),
-    [template, state.currentRoleId]
+    () => getAvailableActionsForInstance(template, state.currentRoleId, instance),
+    [template, state.currentRoleId, instance]
   );
 
   const selectedAction = availableActions.find((action) => action.id === selectedActionId);
@@ -70,6 +76,9 @@ export default function WorkflowDetailPage() {
 
   if (!instance) {
     return <Typography.Text>Workflow not found.</Typography.Text>;
+  }
+  if (!canView) {
+    return <Typography.Text>Access denied.</Typography.Text>;
   }
 
   const editable = instance.steps.length === 0;
@@ -103,6 +112,7 @@ export default function WorkflowDetailPage() {
       <DetailHeader
         instance={instance}
         templateName={template?.name || instance.templateId}
+        loopCount={loopCount}
         createdByLabel={createdByLabel}
         currentTo={getCurrentTo(instance)}
         dueDate={getDueDate(instance)}

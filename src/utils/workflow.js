@@ -13,8 +13,54 @@ export function getRoleById(roles, roleId) {
   return roles.find((role) => role.id === roleId);
 }
 
+export function isProjectAdmin(roleId) {
+  return roleId === 'project-admin';
+}
+
+export function canViewInstance(instance, roleId, roles) {
+  if (!instance) {
+    return false;
+  }
+  if (isProjectAdmin(roleId)) {
+    return true;
+  }
+  if (instance.createdBy === roleId) {
+    return true;
+  }
+  const role = getRoleById(roles, roleId);
+  if (!role || !instance.steps) {
+    return false;
+  }
+  return instance.steps.some(
+    (step) => step.fromRoleId === roleId || step.toGroup === role.group
+  );
+}
+
 export function getTemplateById(templates, templateId) {
   return templates.find((template) => template.id === templateId);
+}
+
+export function getLoopCount(template, instance) {
+  if (!instance) {
+    return 0;
+  }
+  if (!template?.actionFlowEnabled) {
+    return 1;
+  }
+  const actions = template?.actions || [];
+  const startIds = new Set(actions.filter((action) => action.isStart).map((action) => action.id));
+  if (startIds.size === 0) {
+    return 1;
+  }
+  const steps = instance.steps || [];
+  if (steps.length === 0) {
+    return 1;
+  }
+  const count = steps.reduce(
+    (total, step) => total + (startIds.has(step.actionId) ? 1 : 0),
+    0
+  );
+  return Math.max(count, 1);
 }
 
 export function getLatestSentStep(instance) {
@@ -66,10 +112,35 @@ export function isUnread(instance, currentRoleId, roles) {
 }
 
 export function getAvailableActions(template, roleId) {
-  if (!template) {
+  if (!template || !template.actions) {
     return [];
   }
   return template.actions.filter((action) => action.allowedRoles.includes(roleId));
+}
+
+export function getAvailableActionsForInstance(template, roleId, instance) {
+  const allowed = getAvailableActions(template, roleId);
+  if (!template || !template.actionFlowEnabled) {
+    return allowed;
+  }
+  const actions = template.actions || [];
+  if (!instance || !instance.steps || instance.steps.length === 0) {
+    const startActions = actions.filter((action) => action.isStart);
+    const startIds =
+      startActions.length > 0
+        ? startActions.map((action) => action.id)
+        : actions
+            .map((action) => action.id)
+            .filter((id) => !actions.some((action) => (action.nextActionIds || []).includes(id)));
+    return allowed.filter((action) => startIds.includes(action.id));
+  }
+  const latest = getLatestSentStep(instance);
+  if (!latest || !latest.lastStep) {
+    return [];
+  }
+  const fromAction = actions.find((action) => action.id === latest.actionId);
+  const nextIds = new Set(fromAction?.nextActionIds || []);
+  return allowed.filter((action) => nextIds.has(action.id));
 }
 
 export function getNextTransmittalNo(template, instances) {
@@ -185,6 +256,41 @@ export function getPublishIssues(template) {
       issues.push(`Action "${action.label}" requires attachment statuses.`);
     }
   });
+  if (template.actionFlowEnabled) {
+    const actions = template.actions || [];
+    const actionIds = actions.map((action) => action.id);
+    const actionIdSet = new Set(actionIds);
+    const startActions = actions.filter((action) => action.isStart);
+    if (startActions.length === 0) {
+      issues.push('Exactly one start action is required when flow is enabled.');
+    } else if (startActions.length > 1) {
+      issues.push('Only one start action is allowed when flow is enabled.');
+    }
+    if (!actions.some((action) => action.closeInstance)) {
+      issues.push('At least one action must close the workflow when flow is enabled.');
+    }
+
+    actions.forEach((action) => {
+      const nextIds = action.nextActionIds || [];
+      if (nextIds.includes(action.id)) {
+        issues.push(`Action "${action.label}" cannot link to itself.`);
+      }
+      nextIds.forEach((id) => {
+        if (!actionIdSet.has(id)) {
+          issues.push(`Action "${action.label}" links to missing action "${id}".`);
+        }
+      });
+      if (action.closeInstance && nextIds.length > 0) {
+        issues.push(`Action "${action.label}" closes workflow so it should not have next actions.`);
+      }
+      if (action.lastStep && nextIds.length === 0) {
+        issues.push(`Action "${action.label}" requires reply but has no next actions.`);
+      }
+      if (!action.lastStep && nextIds.length > 0) {
+        issues.push(`Action "${action.label}" does not require reply so it should not have next actions.`);
+      }
+    });
+  }
   return issues;
 }
 

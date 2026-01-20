@@ -3,7 +3,7 @@ import { Button, Card, Input, Select, Space, Switch, Tabs, Typography } from '@a
 import { useNavigate } from 'react-router-dom';
 import WorkflowTable from '../components/WorkflowTable.jsx';
 import { useAppContext } from '../store/AppContext.jsx';
-import { isInbox, isOverdue } from '../utils/workflow.js';
+import { canViewInstance, isInbox, isOverdue, isProjectAdmin } from '../utils/workflow.js';
 
 const { TabPane } = Tabs;
 
@@ -15,9 +15,12 @@ export default function WorkflowsPage() {
   const [templateFilter, setTemplateFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [overdueOnly, setOverdueOnly] = useState(false);
+  const isAdmin = isProjectAdmin(state.currentRoleId);
 
   const filteredInstances = useMemo(() => {
-    let data = [...state.instances];
+    let data = state.instances.filter((instance) =>
+      canViewInstance(instance, state.currentRoleId, state.roles)
+    );
     if (activeTab === 'created') {
       data = data.filter((instance) => instance.createdBy === state.currentRoleId);
     }
@@ -79,7 +82,7 @@ export default function WorkflowsPage() {
               Workflows
             </Typography.Title>
             <Space>
-              <Button onClick={() => navigate('/settings')}>Settings</Button>
+              {isAdmin && <Button onClick={() => navigate('/settings')}>Settings</Button>}
               <Button type="primary" onClick={() => navigate('/launch')}>
                 Create
               </Button>

@@ -119,7 +119,7 @@ export default function ActionsTab({ template }) {
       dataIndex: 'dueDays',
     },
     {
-      title: 'Last Step',
+      title: 'Require Reply',
       render: (_, record) => (record.lastStep ? 'Yes' : 'No'),
     },
     {
@@ -127,7 +127,7 @@ export default function ActionsTab({ template }) {
       render: (_, record) => (record.requiresAttachmentStatus ? 'Yes' : 'No'),
     },
     {
-      title: 'Close',
+      title: 'Close Workflow',
       render: (_, record) => (record.closeInstance ? 'Yes' : 'No'),
     },
     {
@@ -201,7 +201,7 @@ export default function ActionsTab({ template }) {
               onChange={(value) => setFormState({ ...formState, dueDays: value })}
             />
           </Form.Item>
-          <Form.Item label="Last Step">
+          <Form.Item label="Require Reply">
             <Switch
               checked={formState.lastStep}
               onChange={(value) => setFormState({ ...formState, lastStep: value })}
@@ -229,7 +229,7 @@ export default function ActionsTab({ template }) {
               />
             </Form.Item>
           )}
-          <Form.Item label="Close Instance">
+          <Form.Item label="Close Workflow">
             <Switch
               checked={formState.closeInstance}
               onChange={(value) => setFormState({ ...formState, closeInstance: value })}

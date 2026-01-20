@@ -13,10 +13,6 @@ export function getRoleById(roles, roleId) {
   return roles.find((role) => role.id === roleId);
 }
 
-export function getTypeById(types, typeId) {
-  return types.find((type) => type.id === typeId);
-}
-
 export function getTemplateById(templates, templateId) {
   return templates.find((template) => template.id === templateId);
 }
@@ -76,8 +72,14 @@ export function getAvailableActions(template, roleId) {
   return template.actions.filter((action) => action.allowedRoles.includes(roleId));
 }
 
-export function getNextTransmittalNo(typeId, instances) {
-  const prefix = typeId.toUpperCase();
+export function getNextTransmittalNo(template, instances) {
+  const rawPrefix = template?.code || template?.name || template?.id || 'DOC';
+  const normalized = String(rawPrefix).trim();
+  const prefix =
+    normalized
+      .toUpperCase()
+      .replace(/[^A-Z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '') || 'DOC';
   const year = new Date().getFullYear();
   const matcher = new RegExp(`^${prefix}-${year}-(\\d{4})$`);
   let max = 0;
@@ -177,7 +179,7 @@ export function getPublishIssues(template) {
       issues.push(`Action "${action.label}" needs at least one recipient group.`);
     }
     if (action.closeInstance && action.lastStep) {
-      issues.push(`Action "${action.label}" cannot be both close and last step.`);
+      issues.push(`Action "${action.label}" cannot be both close workflow and require reply.`);
     }
     if (action.requiresAttachmentStatus && (!action.statusSet || action.statusSet.length === 0)) {
       issues.push(`Action "${action.label}" requires attachment statuses.`);

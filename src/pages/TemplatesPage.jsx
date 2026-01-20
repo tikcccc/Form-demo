@@ -1,28 +1,17 @@
 import React, { useMemo, useState } from 'react';
-import { Button, Card, Input, Select, Space, Table, Tag, Typography } from '@arco-design/web-react';
+import { Button, Card, Input, Space, Table, Tag, Typography } from '@arco-design/web-react';
 import { useNavigate } from 'react-router-dom';
 import CreateTemplateModal from '../components/CreateTemplateModal.jsx';
 import { useAppContext } from '../store/AppContext.jsx';
-import { getTypeById } from '../utils/workflow.js';
 
 export default function TemplatesPage() {
   const { state, actions } = useAppContext();
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
-  const [typeFilter, setTypeFilter] = useState('all');
   const [modalVisible, setModalVisible] = useState(false);
 
-  const activeTemplates = useMemo(() => {
-    return state.types
-      .map((type) => state.templates.find((template) => template.id === type.templateIds[0]))
-      .filter(Boolean);
-  }, [state.templates, state.types]);
-
   const filteredTemplates = useMemo(() => {
-    let data = [...activeTemplates];
-    if (typeFilter !== 'all') {
-      data = data.filter((template) => template.typeId === typeFilter);
-    }
+    let data = [...state.templates];
     if (search.trim()) {
       const query = search.trim().toLowerCase();
       data = data.filter(
@@ -32,17 +21,12 @@ export default function TemplatesPage() {
       );
     }
     return data;
-  }, [activeTemplates, search, typeFilter]);
+  }, [state.templates, search]);
 
   const columns = [
     {
-      title: 'Template Name',
+      title: 'Type Name',
       dataIndex: 'name',
-    },
-    {
-      title: 'Type',
-      dataIndex: 'typeId',
-      render: (typeId) => getTypeById(state.types, typeId)?.name || typeId,
     },
     {
       title: 'Status',
@@ -63,7 +47,7 @@ export default function TemplatesPage() {
         <Space>
           <Button
             size="mini"
-            onClick={() => navigate(`/settings/templates/${record.typeId}/${record.id}`)}
+            onClick={() => navigate(`/settings/templates/${record.id}`)}
           >
             Edit
           </Button>
@@ -78,14 +62,9 @@ export default function TemplatesPage() {
     },
   ];
 
-  const typeOptions = [
-    { value: 'all', label: 'All Types' },
-    ...state.types.map((type) => ({ value: type.id, label: type.name })),
-  ];
-
-  const handleCreate = ({ typeId, sourceTemplateId, name }) => {
-    const newId = actions.createTemplate({ typeId, sourceTemplateId, name });
-    navigate(`/settings/templates/${typeId}/${newId}`);
+  const handleCreate = ({ sourceTemplateId, name }) => {
+    const newId = actions.createTemplate({ sourceTemplateId, name });
+    navigate(`/settings/templates/${newId}`);
   };
 
   return (
@@ -95,13 +74,13 @@ export default function TemplatesPage() {
           <Space direction="vertical" size={4}>
             <Typography.Text className="muted">Settings</Typography.Text>
             <Typography.Title heading={4} style={{ margin: 0 }}>
-              Templates
+              Types
             </Typography.Title>
           </Space>
           <Space>
             <Button onClick={actions.resetData}>Reset to Starter Pack</Button>
             <Button type="primary" onClick={() => setModalVisible(true)}>
-              Create Template
+              Create Type
             </Button>
           </Space>
         </Space>
@@ -110,13 +89,12 @@ export default function TemplatesPage() {
         <Space direction="vertical" size={12} style={{ width: '100%' }}>
           <div className="filter-bar">
             <Input.Search
-              placeholder="Search template name or id"
+              placeholder="Search type name or id"
               value={search}
               onChange={setSearch}
               style={{ width: 240 }}
               allowClear
             />
-            <Select options={typeOptions} value={typeFilter} onChange={setTypeFilter} />
           </div>
           <Table rowKey="id" columns={columns} data={filteredTemplates} pagination={{ pageSize: 8 }} />
         </Space>
@@ -124,7 +102,6 @@ export default function TemplatesPage() {
       <CreateTemplateModal
         visible={modalVisible}
         onClose={() => setModalVisible(false)}
-        types={state.types}
         templates={state.templates}
         onCreate={handleCreate}
       />

@@ -15,7 +15,6 @@ import {
   getLatestSentStep,
   getRoleById,
   getTemplateById,
-  getTypeById,
   isInbox,
   isUnread,
   validateFormData,
@@ -38,8 +37,6 @@ export default function WorkflowDetailPage() {
   }, [instanceId]);
 
   const template = getTemplateById(state.templates, instance?.templateId);
-  const type = getTypeById(state.types, instance?.typeId);
-
   const availableActions = useMemo(
     () => getAvailableActions(template, state.currentRoleId),
     [template, state.currentRoleId]
@@ -105,7 +102,7 @@ export default function WorkflowDetailPage() {
     <Space direction="vertical" size={16} style={{ width: '100%' }}>
       <DetailHeader
         instance={instance}
-        typeName={type?.name || instance.typeId}
+        templateName={template?.name || instance.templateId}
         createdByLabel={createdByLabel}
         currentTo={getCurrentTo(instance)}
         dueDate={getDueDate(instance)}
@@ -119,7 +116,7 @@ export default function WorkflowDetailPage() {
           content={
             <Space>
               <Typography.Text>
-                {latestStep?.lastStep ? 'Action required.' : 'Review and respond when ready.'}
+                {latestStep?.lastStep ? 'Reply required.' : 'Review and respond when ready.'}
               </Typography.Text>
               {latestStep?.dueDate ? (
                 <Typography.Text className="muted">Due {latestStep.dueDate}</Typography.Text>

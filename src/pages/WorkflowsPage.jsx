@@ -12,7 +12,7 @@ export default function WorkflowsPage() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('all');
   const [search, setSearch] = useState('');
-  const [typeFilter, setTypeFilter] = useState('all');
+  const [templateFilter, setTemplateFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [overdueOnly, setOverdueOnly] = useState(false);
 
@@ -27,8 +27,8 @@ export default function WorkflowsPage() {
     if (activeTab === 'closed') {
       data = data.filter((instance) => instance.status === 'Closed');
     }
-    if (typeFilter !== 'all') {
-      data = data.filter((instance) => instance.typeId === typeFilter);
+    if (templateFilter !== 'all') {
+      data = data.filter((instance) => instance.templateId === templateFilter);
     }
     if (statusFilter !== 'all') {
       data = data.filter((instance) => instance.status === statusFilter);
@@ -53,13 +53,16 @@ export default function WorkflowsPage() {
     state.instances,
     state.roles,
     statusFilter,
-    typeFilter,
+    templateFilter,
   ]);
 
-  const typeOptions = [{ value: 'all', label: 'All Types' }, ...state.types.map((type) => ({
-    value: type.id,
-    label: type.name,
-  }))];
+  const templateOptions = [
+    { value: 'all', label: 'All Types' },
+    ...state.templates.map((template) => ({
+      value: template.id,
+      label: template.name,
+    })),
+  ];
 
   const statusOptions = [
     { value: 'all', label: 'All Status' },
@@ -96,7 +99,7 @@ export default function WorkflowsPage() {
               style={{ width: 240 }}
               allowClear
             />
-            <Select options={typeOptions} value={typeFilter} onChange={setTypeFilter} />
+            <Select options={templateOptions} value={templateFilter} onChange={setTemplateFilter} />
             <Select options={statusOptions} value={statusFilter} onChange={setStatusFilter} />
             <Space>
               <Switch checked={overdueOnly} onChange={setOverdueOnly} />
@@ -108,7 +111,7 @@ export default function WorkflowsPage() {
       <Card className="page-card">
         <WorkflowTable
           instances={filteredInstances}
-          types={state.types}
+          templates={state.templates}
           roles={state.roles}
           currentRoleId={state.currentRoleId}
           onSelect={(id) => navigate(`/workflows/${id}`)}

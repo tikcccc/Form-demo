@@ -22,7 +22,7 @@ export default function App() {
           <Route path="/launch" element={<LauncherPage />} />
           <Route path="/settings" element={<TemplatesPage />} />
           <Route path="/settings/templates" element={<Navigate to="/settings" replace />} />
-          <Route path="/settings/templates/:typeId/:templateId" element={<TemplateEditorPage />} />
+          <Route path="/settings/templates/:templateId" element={<TemplateEditorPage />} />
           <Route path="*" element={<Navigate to="/workflows" replace />} />
         </Routes>
       </Content>

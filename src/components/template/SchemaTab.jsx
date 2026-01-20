@@ -10,6 +10,7 @@ import {
   Space,
   Switch,
   Table,
+  Typography,
 } from '@arco-design/web-react';
 import { useAppContext } from '../../store/AppContext.jsx';
 
@@ -25,13 +26,14 @@ export default function SchemaTab({ template }) {
   const { actions } = useAppContext();
   const [drawerVisible, setDrawerVisible] = useState(false);
   const [editingField, setEditingField] = useState(null);
+  const [optionInput, setOptionInput] = useState('');
   const [formState, setFormState] = useState({
     key: '',
     label: '',
     type: 'text',
     required: false,
     listColumn: false,
-    options: '',
+    options: [],
     defaultValue: '',
     minLength: undefined,
     maxLength: undefined,
@@ -48,7 +50,7 @@ export default function SchemaTab({ template }) {
         type: field.type,
         required: Boolean(field.required),
         listColumn: Boolean(field.listColumn),
-        options: (field.options || []).join(', '),
+        options: field.options || [],
         defaultValue: field.defaultValue ?? '',
         minLength: field.minLength,
         maxLength: field.maxLength,
@@ -63,7 +65,7 @@ export default function SchemaTab({ template }) {
         type: 'text',
         required: false,
         listColumn: false,
-        options: '',
+        options: [],
         defaultValue: '',
         minLength: undefined,
         maxLength: undefined,
@@ -71,6 +73,7 @@ export default function SchemaTab({ template }) {
         max: undefined,
       });
     }
+    setOptionInput('');
     setDrawerVisible(true);
   };
 
@@ -88,10 +91,7 @@ export default function SchemaTab({ template }) {
       Message.error('Field key already exists.');
       return;
     }
-    const options = formState.options
-      .split(',')
-      .map((item) => item.trim())
-      .filter(Boolean);
+    const options = formState.options.map((item) => item.trim()).filter(Boolean);
     const nextField = {
       key,
       label: formState.label.trim(),
@@ -129,6 +129,32 @@ export default function SchemaTab({ template }) {
       return { ...current, schema: nextSchema };
     });
     setDrawerVisible(false);
+  };
+
+  const addOption = () => {
+    const value = optionInput.trim();
+    if (!value) {
+      return;
+    }
+    if (formState.options.includes(value)) {
+      Message.warning('Option already exists.');
+      return;
+    }
+    setFormState({ ...formState, options: [...formState.options, value] });
+    setOptionInput('');
+  };
+
+  const updateOption = (index, value) => {
+    const nextOptions = [...formState.options];
+    nextOptions[index] = value;
+    setFormState({ ...formState, options: nextOptions });
+  };
+
+  const removeOption = (index) => {
+    setFormState({
+      ...formState,
+      options: formState.options.filter((_, idx) => idx !== index),
+    });
   };
 
   const columns = [
@@ -189,11 +215,37 @@ export default function SchemaTab({ template }) {
             />
           </Form.Item>
           {formState.type === 'select' && (
-            <Form.Item label="Options (comma separated)">
-              <Input
-                value={formState.options}
-                onChange={(value) => setFormState({ ...formState, options: value })}
-              />
+            <Form.Item label="Options">
+              <Space direction="vertical" size={8} style={{ width: '100%' }}>
+                <Space style={{ width: '100%' }}>
+                  <Input
+                    placeholder="Add option"
+                    value={optionInput}
+                    onChange={(value) => setOptionInput(value)}
+                    onPressEnter={addOption}
+                  />
+                  <Button type="primary" onClick={addOption}>
+                    Add
+                  </Button>
+                </Space>
+                {formState.options.length === 0 ? (
+                  <Typography.Text className="muted">No options yet.</Typography.Text>
+                ) : (
+                  <Space direction="vertical" size={6} style={{ width: '100%' }}>
+                    {formState.options.map((option, index) => (
+                      <Space key={`${option}-${index}`} style={{ width: '100%' }}>
+                        <Input
+                          value={option}
+                          onChange={(value) => updateOption(index, value)}
+                        />
+                        <Button size="mini" status="danger" onClick={() => removeOption(index)}>
+                          Remove
+                        </Button>
+                      </Space>
+                    ))}
+                  </Space>
+                )}
+              </Space>
             </Form.Item>
           )}
           {(formState.type === 'text' || formState.type === 'textarea') && (

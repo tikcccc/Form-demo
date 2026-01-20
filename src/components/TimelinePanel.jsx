@@ -30,7 +30,7 @@ export default function TimelinePanel({ instance, roles }) {
                 <Tag>Sent {step.sentAt}</Tag>
                 {step.openedAt ? <Tag>Opened {step.openedAt}</Tag> : null}
                 {step.dueDate ? <Tag>Due {step.dueDate}</Tag> : null}
-                {step.lastStep ? <Tag color="red">Last step</Tag> : null}
+                {step.lastStep ? <Tag color="red">Reply required</Tag> : null}
               </Space>
               {step.message ? (
                 <Typography.Text className="muted">Message: {step.message}</Typography.Text>

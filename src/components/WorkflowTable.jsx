@@ -5,13 +5,13 @@ import {
   getCurrentTo,
   getDueDate,
   getLatestSentStep,
-  getTypeById,
+  getTemplateById,
   isInbox,
   isOverdue,
   isUnread,
 } from '../utils/workflow.js';
 
-export default function WorkflowTable({ instances, types, roles, currentRoleId, onSelect }) {
+export default function WorkflowTable({ instances, templates, roles, currentRoleId, onSelect }) {
   const columns = [
     {
       title: 'Transmittal No',
@@ -28,8 +28,8 @@ export default function WorkflowTable({ instances, types, roles, currentRoleId, 
     },
     {
       title: 'Type',
-      dataIndex: 'typeId',
-      render: (typeId) => getTypeById(types, typeId)?.name || typeId,
+      dataIndex: 'templateId',
+      render: (templateId) => getTemplateById(templates, templateId)?.name || templateId,
     },
     {
       title: 'Title',

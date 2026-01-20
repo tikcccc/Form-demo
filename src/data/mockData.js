@@ -10,17 +10,10 @@ export const roles = [
   { id: 'cm', label: 'CM', group: 'CM' },
 ];
 
-export const types = [
-  { id: 'rfi', name: 'RFI', templateIds: ['rfi-default'] },
-  { id: 'cor', name: 'COR', templateIds: ['cor-default'] },
-  { id: 'csf', name: 'CSF', templateIds: ['csf-default'] },
-];
-
 export const templates = [
   {
     id: 'rfi-default',
-    typeId: 'rfi',
-    name: 'Default',
+    name: 'RFI',
     published: true,
     schema: [
       { key: 'title', label: 'Title', type: 'text', required: true, listColumn: true },
@@ -94,8 +87,7 @@ export const templates = [
   },
   {
     id: 'cor-default',
-    typeId: 'cor',
-    name: 'Default',
+    name: 'COR',
     published: true,
     schema: [
       { key: 'title', label: 'Title', type: 'text', required: true, listColumn: true },
@@ -149,8 +141,7 @@ export const templates = [
   },
   {
     id: 'csf-default',
-    typeId: 'csf',
-    name: 'Default',
+    name: 'CSF',
     published: true,
     schema: [
       { key: 'title', label: 'Title', type: 'text', required: true, listColumn: true },
@@ -233,7 +224,6 @@ export const instances = [
   {
     id: 'inst-001',
     transmittalNo: 'RFI-2024-0001',
-    typeId: 'rfi',
     templateId: 'rfi-default',
     title: 'Clarify beam connection',
     status: 'Open',
@@ -278,7 +268,6 @@ export const instances = [
   {
     id: 'inst-002',
     transmittalNo: 'CSF-2024-0004',
-    typeId: 'csf',
     templateId: 'csf-default',
     title: 'Facade anchor system',
     status: 'Open',
@@ -327,7 +316,6 @@ export const instances = [
   {
     id: 'inst-003',
     transmittalNo: 'COR-2024-0007',
-    typeId: 'cor',
     templateId: 'cor-default',
     title: 'Slab pour sequence change',
     status: 'Closed',
@@ -384,7 +372,6 @@ export const instances = [
 export const initialState = {
   projects,
   roles,
-  types,
   templates,
   instances,
   currentProjectId: 'project-a',

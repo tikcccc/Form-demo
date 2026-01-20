@@ -30,20 +30,20 @@ export function AppProvider({ children }) {
           currentProjectId: prev.currentProjectId,
         }));
       },
-      createInstance({ typeId, templateId, title }) {
+      createInstance({ templateId, title }) {
         const newId = `inst-${Date.now()}`;
         setState((prev) => {
           const template = getTemplateById(prev.templates, templateId);
-          const transmittalNo = getNextTransmittalNo(typeId, prev.instances);
+          const transmittalNo = getNextTransmittalNo(template, prev.instances);
           const formData = buildDefaultFormData(template);
           if (title) {
             formData.title = title;
           }
-          const instanceTitle = title || formData.title || `New ${typeId.toUpperCase()}`;
+          const templateLabel = template?.name || templateId;
+          const instanceTitle = title || formData.title || `New ${templateLabel}`;
           const newInstance = {
             id: newId,
             transmittalNo,
-            typeId,
             templateId,
             title: instanceTitle,
             status: 'Open',
@@ -137,8 +137,7 @@ export function AppProvider({ children }) {
             const sentAt = todayISO();
             const dueDate = action.dueDays ? addDays(sentAt, action.dueDays) : '';
             const shouldBumpRevision =
-              instance.typeId === 'csf' &&
-              (action.id === 'csf-aip' || action.id === 'csf-not-approved');
+              action.id === 'csf-aip' || action.id === 'csf-not-approved';
             const attachmentStatuses = action.requiresAttachmentStatus
               ? instance.attachments.map((attachment) => ({
                   id: attachment.id,
@@ -199,36 +198,34 @@ export function AppProvider({ children }) {
           return {
             ...prev,
             templates: [...prev.templates, copy],
-            types: prev.types.map((type) =>
-              type.id === template.typeId
-                ? { ...type, templateIds: [newId] }
-                : type
-            ),
           };
         });
       },
-      createTemplate({ typeId, sourceTemplateId, name }) {
+      createTemplate({ sourceTemplateId, name }) {
         const newId = `tpl-${Date.now()}`;
         setState((prev) => {
-          const source = prev.templates.find((item) => item.id === sourceTemplateId);
-          if (!source) {
-            return prev;
-          }
-          const copy = {
-            ...source,
-            id: newId,
-            typeId,
-            name: name || `${source.name} Copy`,
-            published: false,
-          };
+          const safeName = name?.trim() || 'Untitled Type';
+          const source = sourceTemplateId
+            ? prev.templates.find((item) => item.id === sourceTemplateId)
+            : null;
+          const copy = source
+            ? {
+                ...source,
+                id: newId,
+                name: safeName,
+                published: false,
+              }
+            : {
+                id: newId,
+                name: safeName,
+                published: false,
+                schema: [],
+                layout: { sections: [] },
+                actions: [],
+              };
           return {
             ...prev,
             templates: [...prev.templates, copy],
-            types: prev.types.map((type) =>
-              type.id === typeId
-                ? { ...type, templateIds: [newId] }
-                : type
-            ),
           };
         });
         return newId;

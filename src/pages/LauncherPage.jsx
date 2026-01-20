@@ -6,34 +6,26 @@ import { useAppContext } from '../store/AppContext.jsx';
 export default function LauncherPage() {
   const { state, actions } = useAppContext();
   const navigate = useNavigate();
-  const [typeId, setTypeId] = useState(state.types[0]?.id || '');
+  const [templateId, setTemplateId] = useState(state.templates[0]?.id || '');
   const [title, setTitle] = useState('');
 
   const template = useMemo(() => {
-    if (!typeId) {
+    if (!templateId) {
       return null;
     }
-    const type = state.types.find((item) => item.id === typeId);
-    if (!type) {
-      return null;
-    }
-    return state.templates.find((item) => item.id === type.templateIds[0]);
-  }, [state.templates, state.types, typeId]);
+    return state.templates.find((item) => item.id === templateId) || null;
+  }, [state.templates, templateId]);
 
-  const typeOptions = state.types.map((type) => ({
-    value: type.id,
-    label: type.name,
+  const templateOptions = state.templates.map((item) => ({
+    value: item.id,
+    label: item.published ? item.name : `${item.name} (Unpublished)`,
   }));
 
   const handleCreate = () => {
-    if (!typeId || !template || !template.published) {
+    if (!templateId || !template || !template.published) {
       return;
     }
-    const newId = actions.createInstance({
-      typeId,
-      templateId: template.id,
-      title: title.trim(),
-    });
+    const newId = actions.createInstance({ templateId: template.id, title: title.trim() });
     navigate(`/workflows/${newId}`);
   };
 
@@ -53,19 +45,7 @@ export default function LauncherPage() {
       <Card className="page-card">
         <Form layout="vertical" style={{ maxWidth: 520 }}>
           <Form.Item label="Type" required>
-            <Select value={typeId} onChange={setTypeId} options={typeOptions} />
-          </Form.Item>
-          <Form.Item label="Template">
-            <Input
-              value={
-                template
-                  ? template.published
-                    ? template.name
-                    : `${template.name} (Unpublished)`
-                  : 'No template'
-              }
-              disabled
-            />
+            <Select value={templateId} onChange={setTemplateId} options={templateOptions} />
           </Form.Item>
           <Form.Item label="Title">
             <Input value={title} onChange={setTitle} placeholder="Optional" />

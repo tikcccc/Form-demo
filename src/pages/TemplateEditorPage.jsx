@@ -6,20 +6,19 @@ import LayoutTab from '../components/template/LayoutTab.jsx';
 import ActionsTab from '../components/template/ActionsTab.jsx';
 import PublishTab from '../components/template/PublishTab.jsx';
 import { useAppContext } from '../store/AppContext.jsx';
-import { getTemplateById, getTypeById } from '../utils/workflow.js';
+import { getTemplateById } from '../utils/workflow.js';
 
 const { TabPane } = Tabs;
 
 export default function TemplateEditorPage() {
   const { state } = useAppContext();
-  const { typeId, templateId } = useParams();
+  const { templateId } = useParams();
   const navigate = useNavigate();
 
   const template = getTemplateById(state.templates, templateId);
-  const type = getTypeById(state.types, typeId);
 
   if (!template) {
-    return <Typography.Text>Template not found.</Typography.Text>;
+    return <Typography.Text>Type not found.</Typography.Text>;
   }
 
   return (
@@ -27,12 +26,12 @@ export default function TemplateEditorPage() {
       <Card className="page-card">
         <Space style={{ width: '100%', justifyContent: 'space-between' }}>
           <Space direction="vertical" size={4}>
-            <Typography.Text className="muted">Template Editor</Typography.Text>
+            <Typography.Text className="muted">Type Editor</Typography.Text>
             <Typography.Title heading={4} style={{ margin: 0 }}>
-              {type?.name || typeId} · {template.name}
+              {template.name}
             </Typography.Title>
           </Space>
-          <Button onClick={() => navigate('/settings')}>Back to Templates</Button>
+          <Button onClick={() => navigate('/settings')}>Back to Types</Button>
         </Space>
       </Card>
       <Card className="page-card">

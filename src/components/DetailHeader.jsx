@@ -4,7 +4,7 @@ import StatusTag from './StatusTag.jsx';
 
 export default function DetailHeader({
   instance,
-  typeName,
+  templateName,
   createdByLabel,
   currentTo,
   dueDate,
@@ -19,7 +19,7 @@ export default function DetailHeader({
           {!hasSteps && <Tag color="gold">Editing (Not sent yet)</Tag>}
         </Space>
         <Typography.Title heading={5} style={{ margin: 0 }}>
-          {instance.transmittalNo} · {typeName}
+          {instance.transmittalNo} · {templateName}
         </Typography.Title>
         <Descriptions column={3} layout="vertical">
           <Descriptions.Item label="Status">

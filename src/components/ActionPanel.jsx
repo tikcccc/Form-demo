@@ -50,7 +50,7 @@ export default function ActionPanel({
         {selectedAction && (
           <Space wrap>
             {selectedAction.dueDays ? <Tag>Due in {selectedAction.dueDays}d</Tag> : null}
-            {selectedAction.lastStep ? <Tag color="gold">Action required</Tag> : null}
+            {selectedAction.lastStep ? <Tag color="gold">Reply required</Tag> : null}
             {selectedAction.requiresAttachmentStatus ? <Tag color="blue">Attachment status</Tag> : null}
             {selectedAction.closeInstance ? <Tag color="red">Closes workflow</Tag> : null}
           </Space>

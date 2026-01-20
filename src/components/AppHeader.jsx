@@ -13,7 +13,7 @@ export default function AppHeader() {
 
   return (
     <Header className="app-header">
-      <Typography.Text className="brand">FlowForge</Typography.Text>
+      <Typography.Text className="brand">Eagle Eye</Typography.Text>
       <Menu
         mode="horizontal"
         selectedKeys={[selectedKey]}

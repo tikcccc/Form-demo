@@ -17,7 +17,7 @@ import DynamicForm from '../DynamicForm.jsx';
 const { Row, Col } = Grid;
 
 export default function LayoutTab({ template }) {
-  const { actions } = useAppContext();
+  const { state, actions } = useAppContext();
   const [selectedSectionId, setSelectedSectionId] = useState(
     template.layout.sections[0]?.id || ''
   );
@@ -222,7 +222,13 @@ export default function LayoutTab({ template }) {
       </Col>
       <Col span={14}>
         <Card className="panel-card" title="Preview" bordered={false}>
-          <DynamicForm template={template} formData={previewData} editable={false} onChange={() => {}} />
+          <DynamicForm
+            template={template}
+            formData={previewData}
+            roleId={state.currentRoleId}
+            canEdit={false}
+            onChange={() => {}}
+          />
         </Card>
       </Col>
       <Modal

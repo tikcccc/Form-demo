@@ -200,6 +200,35 @@ export function buildDefaultFormData(template) {
   return data;
 }
 
+function isRoleAllowed(list, roleId) {
+  if (!list || list.length === 0) {
+    return true;
+  }
+  return list.includes(roleId);
+}
+
+function isActionAllowed(list, actionId) {
+  if (!list || list.length === 0) {
+    return true;
+  }
+  if (!actionId) {
+    return false;
+  }
+  return list.includes(actionId);
+}
+
+export function getFieldAccess(field, { roleId, actionId, canEdit } = {}) {
+  const isAdmin = isProjectAdmin(roleId);
+  const visible = isAdmin || isRoleAllowed(field.visibleRoles, roleId);
+  const editable =
+    Boolean(canEdit) &&
+    visible &&
+    (isAdmin || isRoleAllowed(field.editableRoles, roleId)) &&
+    isActionAllowed(field.editableActionIds, actionId);
+  const required = Boolean(field.required) && editable;
+  return { visible, editable, required };
+}
+
 export function areAttachmentStatusesComplete(instance) {
   if (!instance.attachments || instance.attachments.length === 0) {
     return true;
@@ -309,18 +338,38 @@ export function getPublishIssues(template) {
   return issues;
 }
 
-export function validateFormData(template, formData) {
+export function validateFormData(template, formData, context = {}) {
   const errors = {};
   if (!template) {
     return errors;
   }
+  const visibleFieldKeys = new Set();
+  if (template.layout && Array.isArray(template.layout.sections)) {
+    template.layout.sections.forEach((section) => {
+      if (section.visibleWhen) {
+        const expected = section.visibleWhen.equals;
+        const current = formData[section.visibleWhen.field];
+        if (current !== expected) {
+          return;
+        }
+      }
+      (section.fields || []).forEach((fieldKey) => visibleFieldKeys.add(fieldKey));
+    });
+  }
   template.schema.forEach((field) => {
+    if (visibleFieldKeys.size > 0 && !visibleFieldKeys.has(field.key)) {
+      return;
+    }
+    const access = getFieldAccess(field, context);
+    if (!access.editable) {
+      return;
+    }
     const value = formData[field.key];
     const label = field.label || field.key;
     const isEmpty =
       value === undefined || value === null || value === '' || Number.isNaN(value);
 
-    if (field.required && isEmpty) {
+    if (access.required && isEmpty) {
       errors[field.key] = `${label} is required.`;
       return;
     }

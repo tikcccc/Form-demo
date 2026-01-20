@@ -72,13 +72,16 @@ export default function WorkflowDetailPage() {
     : false;
   const replyRequired = Boolean(inInbox);
   const attachmentsReady = instance ? areAttachmentStatusesComplete(instance) : true;
-  const editable = instance ? instance.steps.length === 0 : false;
+  const isDraft = instance ? instance.steps.length === 0 : false;
+  const canEditForm = instance ? instance.status === 'Open' && (isDraft || inInbox) : false;
+  const actionContextId =
+    selectedActionId || (availableActions.length === 1 ? availableActions[0].id : '');
   const canEditAttachments = instance
     ? instance.status === 'Open' &&
       (isProjectAdmin(state.currentRoleId) ||
         instance.createdBy === state.currentRoleId ||
         inInbox ||
-        editable)
+        isDraft)
     : false;
   const draftAttachments = useMemo(() => {
     if (!instance?.attachments) {
@@ -192,7 +195,15 @@ export default function WorkflowDetailPage() {
   }, [attachmentViewId, attachmentViewOptions, defaultAttachmentViewId, instance]);
 
   const formData = instance?.formData || {};
-  const formErrors = useMemo(() => validateFormData(template, formData), [formData, template]);
+  const formErrors = useMemo(
+    () =>
+      validateFormData(template, formData, {
+        roleId: state.currentRoleId,
+        actionId: actionContextId,
+        canEdit: canEditForm,
+      }),
+    [actionContextId, canEditForm, formData, state.currentRoleId, template]
+  );
 
   if (!instance) {
     return <Typography.Text>Workflow not found.</Typography.Text>;
@@ -207,8 +218,8 @@ export default function WorkflowDetailPage() {
     : attachmentsByStep.get(attachmentViewId) || [];
   const statusRequiredForView =
     isDraftView && canEditAttachments && Boolean(selectedAction?.requiresAttachmentStatus);
-  const formValid = !editable || Object.keys(formErrors).length === 0;
-  const canTakeAction = instance.status === 'Open' && (inInbox || editable);
+  const formValid = !canEditForm || Object.keys(formErrors).length === 0;
+  const canTakeAction = instance.status === 'Open' && (inInbox || isDraft);
   const createdByLabel = getRoleById(state.roles, instance.createdBy)?.label || instance.createdBy;
   const delegateEnabled = Boolean(
     showDelegatePanel && delegateOptions.length > 0 && delegateGroup
@@ -224,7 +235,7 @@ export default function WorkflowDetailPage() {
     if (replyRequired && !message.trim()) {
       return;
     }
-    if (editable && !formValid) {
+    if (canEditForm && !formValid) {
       return;
     }
     actions.sendAction({
@@ -291,10 +302,12 @@ export default function WorkflowDetailPage() {
         <DynamicForm
           template={template}
           formData={instance.formData}
-          editable={editable}
+          roleId={state.currentRoleId}
+          actionId={actionContextId}
+          canEdit={canEditForm}
           onChange={(key, value) => actions.updateFormField(instance.id, key, value)}
           errors={formErrors}
-          showValidation={editable}
+          showValidation={canEditForm}
         />
         <AttachmentsPanel
           attachments={attachmentsForView}
@@ -337,7 +350,7 @@ export default function WorkflowDetailPage() {
               attachmentsReady={attachmentsReady}
               messageRequired={replyRequired}
               formValid={formValid}
-              showFormErrors={editable}
+              showFormErrors={canEditForm}
             />
           )}
           <TimelinePanel instance={instance} roles={state.roles} />

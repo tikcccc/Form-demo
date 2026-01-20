@@ -23,7 +23,7 @@ const fieldTypes = [
 ];
 
 export default function SchemaTab({ template }) {
-  const { actions } = useAppContext();
+  const { state, actions } = useAppContext();
   const [drawerVisible, setDrawerVisible] = useState(false);
   const [editingField, setEditingField] = useState(null);
   const [optionInput, setOptionInput] = useState('');
@@ -39,7 +39,18 @@ export default function SchemaTab({ template }) {
     maxLength: undefined,
     min: undefined,
     max: undefined,
+    visibleRoles: [],
+    editableRoles: [],
+    editableActionIds: [],
   });
+  const roleOptions = state.roles.map((role) => ({
+    value: role.id,
+    label: role.label,
+  }));
+  const actionOptions = template.actions.map((action) => ({
+    value: action.id,
+    label: action.label,
+  }));
 
   const openDrawer = (field) => {
     if (field) {
@@ -56,6 +67,9 @@ export default function SchemaTab({ template }) {
         maxLength: field.maxLength,
         min: field.min,
         max: field.max,
+        visibleRoles: field.visibleRoles || [],
+        editableRoles: field.editableRoles || [],
+        editableActionIds: field.editableActionIds || [],
       });
     } else {
       setEditingField(null);
@@ -71,6 +85,9 @@ export default function SchemaTab({ template }) {
         maxLength: undefined,
         min: undefined,
         max: undefined,
+        visibleRoles: [],
+        editableRoles: [],
+        editableActionIds: [],
       });
     }
     setOptionInput('');
@@ -120,6 +137,15 @@ export default function SchemaTab({ template }) {
     }
     if (formState.defaultValue) {
       nextField.defaultValue = formState.defaultValue;
+    }
+    if (formState.visibleRoles.length > 0) {
+      nextField.visibleRoles = formState.visibleRoles;
+    }
+    if (formState.editableRoles.length > 0) {
+      nextField.editableRoles = formState.editableRoles;
+    }
+    if (formState.editableActionIds.length > 0) {
+      nextField.editableActionIds = formState.editableActionIds;
     }
 
     actions.updateTemplate(template.id, (current) => {
@@ -306,6 +332,34 @@ export default function SchemaTab({ template }) {
             <Input
               value={formState.defaultValue}
               onChange={(value) => setFormState({ ...formState, defaultValue: value })}
+            />
+          </Form.Item>
+          <Form.Item label="Visible Roles">
+            <Select
+              mode="multiple"
+              options={roleOptions}
+              value={formState.visibleRoles}
+              onChange={(value) => setFormState({ ...formState, visibleRoles: value })}
+              placeholder="All roles"
+            />
+          </Form.Item>
+          <Form.Item label="Editable Roles">
+            <Select
+              mode="multiple"
+              options={roleOptions}
+              value={formState.editableRoles}
+              onChange={(value) => setFormState({ ...formState, editableRoles: value })}
+              placeholder="All roles"
+            />
+          </Form.Item>
+          <Form.Item label="Editable Actions">
+            <Select
+              mode="multiple"
+              options={actionOptions}
+              value={formState.editableActionIds}
+              onChange={(value) => setFormState({ ...formState, editableActionIds: value })}
+              placeholder="Any action"
+              disabled={actionOptions.length === 0}
             />
           </Form.Item>
           <Form.Item label="Required">

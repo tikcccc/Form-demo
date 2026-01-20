@@ -1,24 +1,28 @@
 import React from 'react';
 import { Card, Form, Input, InputNumber, Select, Switch } from '@arco-design/web-react';
+import { getFieldAccess } from '../utils/workflow.js';
 
 export default function DynamicForm({
   template,
   formData,
-  editable,
   onChange,
   errors = {},
   showValidation = false,
+  roleId = '',
+  actionId = '',
+  canEdit = false,
 }) {
   if (!template) {
     return null;
   }
 
   const fieldMap = new Map(template.schema.map((field) => [field.key, field]));
+  const accessContext = { roleId, actionId, canEdit };
 
-  const renderInput = (field) => {
+  const renderInput = (field, access) => {
     const value = formData[field.key];
     const commonProps = {
-      disabled: !editable,
+      disabled: !access.editable,
     };
 
     if (field.type === 'textarea') {
@@ -61,7 +65,7 @@ export default function DynamicForm({
         <Switch
           checked={Boolean(value)}
           onChange={(val) => onChange(field.key, val)}
-          disabled={!editable}
+          disabled={!access.editable}
         />
       );
     }
@@ -86,6 +90,24 @@ export default function DynamicForm({
           }
         }
 
+        const visibleFields = section.fields
+          .map((fieldKey) => {
+            const field = fieldMap.get(fieldKey);
+            if (!field) {
+              return null;
+            }
+            const access = getFieldAccess(field, accessContext);
+            if (!access.visible) {
+              return null;
+            }
+            return { field, access };
+          })
+          .filter(Boolean);
+
+        if (visibleFields.length === 0) {
+          return null;
+        }
+
         return (
           <Card
             key={section.id}
@@ -94,21 +116,17 @@ export default function DynamicForm({
             bordered={false}
           >
             <Form layout="vertical">
-              {section.fields.map((fieldKey) => {
-                const field = fieldMap.get(fieldKey);
-                if (!field) {
-                  return null;
-                }
+              {visibleFields.map(({ field, access }) => {
                 const error = errors[field.key];
                 return (
                   <Form.Item
                     key={field.key}
                     label={field.label}
-                    required={field.required}
+                    required={access.required}
                     validateStatus={showValidation && error ? 'error' : undefined}
                     help={showValidation && error ? error : null}
                   >
-                    {renderInput(field)}
+                    {renderInput(field, access)}
                   </Form.Item>
                 );
               })}

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   Button,
   Drawer,
@@ -32,7 +32,6 @@ export default function SchemaTab({ template }) {
     label: '',
     type: 'text',
     required: false,
-    listColumn: false,
     options: [],
     defaultValue: '',
     minLength: undefined,
@@ -47,20 +46,40 @@ export default function SchemaTab({ template }) {
     value: role.id,
     label: role.label,
   }));
-  const actionOptions = template.actions.map((action) => ({
-    value: action.id,
-    label: action.label,
-  }));
+
+  const getActionOptionsForRoles = (roles) => {
+    if (!roles || roles.length === 0) {
+      return template.actions.map((action) => ({
+        value: action.id,
+        label: action.label,
+      }));
+    }
+    const roleSet = new Set(roles);
+    return template.actions
+      .filter((action) => action.allowedRoles.some((role) => roleSet.has(role)))
+      .map((action) => ({ value: action.id, label: action.label }));
+  };
+
+  const filteredActionOptions = useMemo(
+    () => getActionOptionsForRoles(formState.editableRoles),
+    [formState.editableRoles, template.actions]
+  );
 
   const openDrawer = (field) => {
     if (field) {
+      const initialRoles = field.editableRoles || [];
+      const allowedActionIds = new Set(
+        getActionOptionsForRoles(initialRoles).map((option) => option.value)
+      );
+      const editableActionIds = (field.editableActionIds || []).filter((id) =>
+        allowedActionIds.has(id)
+      );
       setEditingField(field);
       setFormState({
         key: field.key,
         label: field.label,
         type: field.type,
         required: Boolean(field.required),
-        listColumn: Boolean(field.listColumn),
         options: field.options || [],
         defaultValue: field.defaultValue ?? '',
         minLength: field.minLength,
@@ -68,8 +87,8 @@ export default function SchemaTab({ template }) {
         min: field.min,
         max: field.max,
         visibleRoles: field.visibleRoles || [],
-        editableRoles: field.editableRoles || [],
-        editableActionIds: field.editableActionIds || [],
+        editableRoles: initialRoles,
+        editableActionIds,
       });
     } else {
       setEditingField(null);
@@ -78,7 +97,6 @@ export default function SchemaTab({ template }) {
         label: '',
         type: 'text',
         required: false,
-        listColumn: false,
         options: [],
         defaultValue: '',
         minLength: undefined,
@@ -114,7 +132,6 @@ export default function SchemaTab({ template }) {
       label: formState.label.trim(),
       type: formState.type,
       required: formState.required,
-      listColumn: formState.listColumn,
     };
     if (formState.type === 'select') {
       nextField.options = options;
@@ -190,10 +207,6 @@ export default function SchemaTab({ template }) {
     {
       title: 'Required',
       render: (_, record) => (record.required ? 'Yes' : 'No'),
-    },
-    {
-      title: 'List Column',
-      render: (_, record) => (record.listColumn ? 'Yes' : 'No'),
     },
     {
       title: 'Actions',
@@ -348,30 +361,36 @@ export default function SchemaTab({ template }) {
               mode="multiple"
               options={roleOptions}
               value={formState.editableRoles}
-              onChange={(value) => setFormState({ ...formState, editableRoles: value })}
+              onChange={(value) => {
+                const allowedActionIds = new Set(
+                  getActionOptionsForRoles(value).map((option) => option.value)
+                );
+                const nextEditableActionIds = formState.editableActionIds.filter((id) =>
+                  allowedActionIds.has(id)
+                );
+                setFormState({
+                  ...formState,
+                  editableRoles: value,
+                  editableActionIds: nextEditableActionIds,
+                });
+              }}
               placeholder="All roles"
             />
           </Form.Item>
           <Form.Item label="Editable Actions">
             <Select
               mode="multiple"
-              options={actionOptions}
+              options={filteredActionOptions}
               value={formState.editableActionIds}
               onChange={(value) => setFormState({ ...formState, editableActionIds: value })}
               placeholder="Any action"
-              disabled={actionOptions.length === 0}
+              disabled={filteredActionOptions.length === 0}
             />
           </Form.Item>
           <Form.Item label="Required">
             <Switch
               checked={formState.required}
               onChange={(value) => setFormState({ ...formState, required: value })}
-            />
-          </Form.Item>
-          <Form.Item label="List Column">
-            <Switch
-              checked={formState.listColumn}
-              onChange={(value) => setFormState({ ...formState, listColumn: value })}
             />
           </Form.Item>
         </Form>

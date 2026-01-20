@@ -18,21 +18,19 @@ export const templates = [
     published: true,
     actionFlowEnabled: true,
     schema: [
-      { key: 'title', label: 'Title', type: 'text', required: true, listColumn: true },
-      { key: 'subject', label: 'Subject', type: 'text', required: true, listColumn: true },
+      { key: 'title', label: 'Title', type: 'text', required: true },
+      { key: 'subject', label: 'Subject', type: 'text', required: true },
       {
         key: 'discipline',
         label: 'Discipline',
         type: 'select',
         options: ['Structural', 'Architectural', 'MEP'],
-        listColumn: true,
       },
       {
         key: 'priority',
         label: 'Priority',
         type: 'select',
         options: ['Low', 'Medium', 'High'],
-        listColumn: true,
       },
       {
         key: 'impact',
@@ -107,16 +105,15 @@ export const templates = [
     published: true,
     actionFlowEnabled: true,
     schema: [
-      { key: 'title', label: 'Title', type: 'text', required: true, listColumn: true },
+      { key: 'title', label: 'Title', type: 'text', required: true },
       {
         key: 'reason',
         label: 'Change Reason',
         type: 'select',
         options: ['Client Request', 'Design Update', 'Site Condition'],
-        listColumn: true,
       },
-      { key: 'costDelta', label: 'Cost Delta (HKD)', type: 'number', listColumn: true, min: 0 },
-      { key: 'timeDelta', label: 'Time Delta (Days)', type: 'number', listColumn: true, min: 0 },
+      { key: 'costDelta', label: 'Cost Delta (HKD)', type: 'number', min: 0 },
+      { key: 'timeDelta', label: 'Time Delta (Days)', type: 'number', min: 0 },
       { key: 'description', label: 'Description', type: 'textarea', required: true, minLength: 8 },
     ],
     layout: {
@@ -179,13 +176,12 @@ export const templates = [
     published: true,
     actionFlowEnabled: true,
     schema: [
-      { key: 'title', label: 'Title', type: 'text', required: true, listColumn: true },
+      { key: 'title', label: 'Title', type: 'text', required: true },
       {
         key: 'specSection',
         label: 'Spec Section',
         type: 'text',
         required: true,
-        listColumn: true,
         minLength: 3,
         maxLength: 12,
       },
@@ -194,7 +190,6 @@ export const templates = [
         label: 'Package',
         type: 'select',
         options: ['Concrete', 'Steel', 'Facade', 'MEP'],
-        listColumn: true,
       },
       { key: 'description', label: 'Description', type: 'textarea' },
     ],

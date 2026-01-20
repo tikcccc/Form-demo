@@ -6,6 +6,7 @@ import WorkflowsPage from './pages/WorkflowsPage.jsx';
 import WorkflowDetailPage from './pages/WorkflowDetailPage.jsx';
 import TemplateEditorPage from './pages/TemplateEditorPage.jsx';
 import TemplatesPage from './pages/TemplatesPage.jsx';
+import LauncherPage from './pages/LauncherPage.jsx';
 
 const { Content } = Layout;
 
@@ -18,6 +19,7 @@ export default function App() {
           <Route path="/" element={<Navigate to="/workflows" replace />} />
           <Route path="/workflows" element={<WorkflowsPage />} />
           <Route path="/workflows/:instanceId" element={<WorkflowDetailPage />} />
+          <Route path="/launch" element={<LauncherPage />} />
           <Route path="/settings" element={<TemplatesPage />} />
           <Route path="/settings/templates" element={<Navigate to="/settings" replace />} />
           <Route path="/settings/templates/:typeId/:templateId" element={<TemplateEditorPage />} />

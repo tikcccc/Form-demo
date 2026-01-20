@@ -11,6 +11,8 @@ export default function ActionPanel({
   onMessageChange,
   onSend,
   attachmentsReady,
+  formValid = true,
+  showFormErrors = false,
 }) {
   const selectedAction = actions.find((action) => action.id === selectedActionId);
   const toOptions = selectedAction
@@ -19,7 +21,8 @@ export default function ActionPanel({
   const canSend = Boolean(
     selectedAction &&
       selectedToGroup &&
-      (!selectedAction.requiresAttachmentStatus || attachmentsReady)
+      (!selectedAction.requiresAttachmentStatus || attachmentsReady) &&
+      formValid
   );
 
   return (
@@ -54,6 +57,9 @@ export default function ActionPanel({
         )}
         {selectedAction && selectedAction.requiresAttachmentStatus && !attachmentsReady && (
           <Alert type="warning" content="Set status for all attachments before sending." />
+        )}
+        {!formValid && showFormErrors && (
+          <Alert type="warning" content="Fix form validation errors before sending." />
         )}
         <Button type="primary" disabled={!canSend} onClick={onSend}>
           Send

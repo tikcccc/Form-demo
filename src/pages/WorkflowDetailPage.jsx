@@ -18,6 +18,7 @@ import {
   getTypeById,
   isInbox,
   isUnread,
+  validateFormData,
 } from '../utils/workflow.js';
 
 export default function WorkflowDetailPage() {
@@ -67,11 +68,15 @@ export default function WorkflowDetailPage() {
     }
   }, [selectedActionId, selectedAction]);
 
+  const formData = instance?.formData || {};
+  const formErrors = useMemo(() => validateFormData(template, formData), [formData, template]);
+
   if (!instance) {
     return <Typography.Text>Workflow not found.</Typography.Text>;
   }
 
   const editable = instance.steps.length === 0;
+  const formValid = !editable || Object.keys(formErrors).length === 0;
   const canTakeAction = instance.status === 'Open' && (inInbox || editable);
   const createdByLabel = getRoleById(state.roles, instance.createdBy)?.label || instance.createdBy;
 
@@ -80,6 +85,9 @@ export default function WorkflowDetailPage() {
       return;
     }
     if (selectedAction.requiresAttachmentStatus && !attachmentsReady) {
+      return;
+    }
+    if (editable && !formValid) {
       return;
     }
     actions.sendAction({
@@ -133,6 +141,8 @@ export default function WorkflowDetailPage() {
           formData={instance.formData}
           editable={editable}
           onChange={(key, value) => actions.updateFormField(instance.id, key, value)}
+          errors={formErrors}
+          showValidation={editable}
         />
         <AttachmentsPanel
           attachments={instance.attachments}
@@ -155,6 +165,8 @@ export default function WorkflowDetailPage() {
               onMessageChange={setMessage}
               onSend={handleSend}
               attachmentsReady={attachmentsReady}
+              formValid={formValid}
+              showFormErrors={editable}
             />
           )}
           <TimelinePanel instance={instance} roles={state.roles} />

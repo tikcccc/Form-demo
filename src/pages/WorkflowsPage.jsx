@@ -1,7 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { Button, Card, Input, Select, Space, Switch, Tabs, Typography } from '@arco-design/web-react';
 import { useNavigate } from 'react-router-dom';
-import CreateInstanceModal from '../components/CreateInstanceModal.jsx';
 import WorkflowTable from '../components/WorkflowTable.jsx';
 import { useAppContext } from '../store/AppContext.jsx';
 import { isInbox, isOverdue } from '../utils/workflow.js';
@@ -9,14 +8,13 @@ import { isInbox, isOverdue } from '../utils/workflow.js';
 const { TabPane } = Tabs;
 
 export default function WorkflowsPage() {
-  const { state, actions } = useAppContext();
+  const { state } = useAppContext();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('all');
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [overdueOnly, setOverdueOnly] = useState(false);
-  const [modalVisible, setModalVisible] = useState(false);
 
   const filteredInstances = useMemo(() => {
     let data = [...state.instances];
@@ -69,11 +67,6 @@ export default function WorkflowsPage() {
     { value: 'Closed', label: 'Closed' },
   ];
 
-  const handleCreate = (payload) => {
-    const newId = actions.createInstance(payload);
-    navigate(`/workflows/${newId}`);
-  };
-
   return (
     <Space direction="vertical" size={16} style={{ width: '100%' }}>
       <Card className="page-card">
@@ -84,7 +77,7 @@ export default function WorkflowsPage() {
             </Typography.Title>
             <Space>
               <Button onClick={() => navigate('/settings')}>Settings</Button>
-              <Button type="primary" onClick={() => setModalVisible(true)}>
+              <Button type="primary" onClick={() => navigate('/launch')}>
                 Create
               </Button>
             </Space>
@@ -121,13 +114,6 @@ export default function WorkflowsPage() {
           onSelect={(id) => navigate(`/workflows/${id}`)}
         />
       </Card>
-      <CreateInstanceModal
-        visible={modalVisible}
-        onClose={() => setModalVisible(false)}
-        types={state.types}
-        templates={state.templates}
-        onCreate={handleCreate}
-      />
     </Space>
   );
 }

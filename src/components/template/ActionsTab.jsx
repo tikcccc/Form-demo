@@ -6,6 +6,7 @@ import {
   Input,
   InputNumber,
   Message,
+  Popconfirm,
   Select,
   Space,
   Switch,
@@ -19,6 +20,7 @@ export default function ActionsTab({ template }) {
   const { state, actions } = useAppContext();
   const [drawerVisible, setDrawerVisible] = useState(false);
   const [editingAction, setEditingAction] = useState(null);
+  const [isNewAction, setIsNewAction] = useState(false);
   const [formState, setFormState] = useState({
     label: '',
     allowedRoles: [],
@@ -31,17 +33,33 @@ export default function ActionsTab({ template }) {
   });
 
   const openDrawer = (action) => {
-    setEditingAction(action);
-    setFormState({
-      label: action.label,
-      allowedRoles: action.allowedRoles,
-      toCandidateGroups: action.toCandidateGroups,
-      dueDays: action.dueDays || 0,
-      lastStep: Boolean(action.lastStep),
-      requiresAttachmentStatus: Boolean(action.requiresAttachmentStatus),
-      closeInstance: Boolean(action.closeInstance),
-      statusSet: action.statusSet || [],
-    });
+    if (action) {
+      setEditingAction(action);
+      setIsNewAction(false);
+      setFormState({
+        label: action.label,
+        allowedRoles: action.allowedRoles,
+        toCandidateGroups: action.toCandidateGroups,
+        dueDays: action.dueDays || 0,
+        lastStep: Boolean(action.lastStep),
+        requiresAttachmentStatus: Boolean(action.requiresAttachmentStatus),
+        closeInstance: Boolean(action.closeInstance),
+        statusSet: action.statusSet || [],
+      });
+    } else {
+      setEditingAction(null);
+      setIsNewAction(true);
+      setFormState({
+        label: '',
+        allowedRoles: [],
+        toCandidateGroups: [],
+        dueDays: 0,
+        lastStep: false,
+        requiresAttachmentStatus: false,
+        closeInstance: false,
+        statusSet: [],
+      });
+    }
     setDrawerVisible(true);
   };
 
@@ -59,7 +77,8 @@ export default function ActionsTab({ template }) {
       return;
     }
     const nextAction = {
-      ...editingAction,
+      ...(editingAction || {}),
+      id: editingAction?.id || `action-${Date.now()}`,
       label: formState.label.trim(),
       allowedRoles: formState.allowedRoles,
       toCandidateGroups: formState.toCandidateGroups,
@@ -70,12 +89,19 @@ export default function ActionsTab({ template }) {
       statusSet: formState.requiresAttachmentStatus ? formState.statusSet : [],
     };
     actions.updateTemplate(template.id, (current) => {
-      const nextActions = current.actions.map((action) =>
-        action.id === editingAction.id ? nextAction : action
-      );
+      const nextActions = editingAction
+        ? current.actions.map((action) => (action.id === editingAction.id ? nextAction : action))
+        : [...current.actions, nextAction];
       return { ...current, actions: nextActions };
     });
     setDrawerVisible(false);
+  };
+
+  const handleDelete = (actionId) => {
+    actions.updateTemplate(template.id, (current) => ({
+      ...current,
+      actions: current.actions.filter((action) => action.id !== actionId),
+    }));
   };
 
   const columns = [
@@ -107,9 +133,21 @@ export default function ActionsTab({ template }) {
     {
       title: 'Actions',
       render: (_, record) => (
-        <Button size="mini" onClick={() => openDrawer(record)}>
-          Edit
-        </Button>
+        <Space>
+          <Button size="mini" onClick={() => openDrawer(record)}>
+            Edit
+          </Button>
+          <Popconfirm
+            title="Delete this action?"
+            okText="Delete"
+            cancelText="Cancel"
+            onOk={() => handleDelete(record.id)}
+          >
+            <Button size="mini" status="danger">
+              Delete
+            </Button>
+          </Popconfirm>
+        </Space>
       ),
     },
   ];
@@ -121,11 +159,14 @@ export default function ActionsTab({ template }) {
 
   return (
     <Space direction="vertical" size={16} style={{ width: '100%' }}>
+      <Button type="primary" onClick={() => openDrawer(null)}>
+        Add Action
+      </Button>
       <Table rowKey="id" columns={columns} data={template.actions} pagination={false} />
       <Drawer
         width={460}
         visible={drawerVisible}
-        title={editingAction ? `Edit ${editingAction.label}` : 'Edit Action'}
+        title={isNewAction ? 'Add Action' : `Edit ${editingAction?.label || 'Action'}`}
         onOk={handleSave}
         onCancel={() => setDrawerVisible(false)}
         okText="Save"

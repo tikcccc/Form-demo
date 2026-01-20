@@ -4,6 +4,7 @@ import {
   Drawer,
   Form,
   Input,
+  InputNumber,
   Message,
   Select,
   Space,
@@ -32,6 +33,10 @@ export default function SchemaTab({ template }) {
     listColumn: false,
     options: '',
     defaultValue: '',
+    minLength: undefined,
+    maxLength: undefined,
+    min: undefined,
+    max: undefined,
   });
 
   const openDrawer = (field) => {
@@ -45,6 +50,10 @@ export default function SchemaTab({ template }) {
         listColumn: Boolean(field.listColumn),
         options: (field.options || []).join(', '),
         defaultValue: field.defaultValue ?? '',
+        minLength: field.minLength,
+        maxLength: field.maxLength,
+        min: field.min,
+        max: field.max,
       });
     } else {
       setEditingField(null);
@@ -56,6 +65,10 @@ export default function SchemaTab({ template }) {
         listColumn: false,
         options: '',
         defaultValue: '',
+        minLength: undefined,
+        maxLength: undefined,
+        min: undefined,
+        max: undefined,
       });
     }
     setDrawerVisible(true);
@@ -88,6 +101,22 @@ export default function SchemaTab({ template }) {
     };
     if (formState.type === 'select') {
       nextField.options = options;
+    }
+    if (formState.type === 'text' || formState.type === 'textarea') {
+      if (formState.minLength !== undefined) {
+        nextField.minLength = formState.minLength;
+      }
+      if (formState.maxLength !== undefined) {
+        nextField.maxLength = formState.maxLength;
+      }
+    }
+    if (formState.type === 'number') {
+      if (formState.min !== undefined) {
+        nextField.min = formState.min;
+      }
+      if (formState.max !== undefined) {
+        nextField.max = formState.max;
+      }
     }
     if (formState.defaultValue) {
       nextField.defaultValue = formState.defaultValue;
@@ -165,6 +194,60 @@ export default function SchemaTab({ template }) {
                 value={formState.options}
                 onChange={(value) => setFormState({ ...formState, options: value })}
               />
+            </Form.Item>
+          )}
+          {(formState.type === 'text' || formState.type === 'textarea') && (
+            <Form.Item label="Length Range">
+              <Space>
+                <InputNumber
+                  min={0}
+                  placeholder="Min"
+                  value={formState.minLength}
+                  onChange={(value) =>
+                    setFormState({
+                      ...formState,
+                      minLength: value === null ? undefined : value,
+                    })
+                  }
+                />
+                <InputNumber
+                  min={0}
+                  placeholder="Max"
+                  value={formState.maxLength}
+                  onChange={(value) =>
+                    setFormState({
+                      ...formState,
+                      maxLength: value === null ? undefined : value,
+                    })
+                  }
+                />
+              </Space>
+            </Form.Item>
+          )}
+          {formState.type === 'number' && (
+            <Form.Item label="Number Range">
+              <Space>
+                <InputNumber
+                  placeholder="Min"
+                  value={formState.min}
+                  onChange={(value) =>
+                    setFormState({
+                      ...formState,
+                      min: value === null ? undefined : value,
+                    })
+                  }
+                />
+                <InputNumber
+                  placeholder="Max"
+                  value={formState.max}
+                  onChange={(value) =>
+                    setFormState({
+                      ...formState,
+                      max: value === null ? undefined : value,
+                    })
+                  }
+                />
+              </Space>
             </Form.Item>
           )}
           <Form.Item label="Default Value">

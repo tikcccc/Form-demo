@@ -12,8 +12,14 @@ export default function TemplatesPage() {
   const [typeFilter, setTypeFilter] = useState('all');
   const [modalVisible, setModalVisible] = useState(false);
 
+  const activeTemplates = useMemo(() => {
+    return state.types
+      .map((type) => state.templates.find((template) => template.id === type.templateIds[0]))
+      .filter(Boolean);
+  }, [state.templates, state.types]);
+
   const filteredTemplates = useMemo(() => {
-    let data = [...state.templates];
+    let data = [...activeTemplates];
     if (typeFilter !== 'all') {
       data = data.filter((template) => template.typeId === typeFilter);
     }
@@ -26,7 +32,7 @@ export default function TemplatesPage() {
       );
     }
     return data;
-  }, [search, state.templates, typeFilter]);
+  }, [activeTemplates, search, typeFilter]);
 
   const columns = [
     {

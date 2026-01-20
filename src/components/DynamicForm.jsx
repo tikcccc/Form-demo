@@ -1,7 +1,14 @@
 import React from 'react';
 import { Card, Form, Input, InputNumber, Select, Switch } from '@arco-design/web-react';
 
-export default function DynamicForm({ template, formData, editable, onChange }) {
+export default function DynamicForm({
+  template,
+  formData,
+  editable,
+  onChange,
+  errors = {},
+  showValidation = false,
+}) {
   if (!template) {
     return null;
   }
@@ -92,8 +99,15 @@ export default function DynamicForm({ template, formData, editable, onChange }) 
                 if (!field) {
                   return null;
                 }
+                const error = errors[field.key];
                 return (
-                  <Form.Item key={field.key} label={field.label} required={field.required}>
+                  <Form.Item
+                    key={field.key}
+                    label={field.label}
+                    required={field.required}
+                    validateStatus={showValidation && error ? 'error' : undefined}
+                    help={showValidation && error ? error : null}
+                  >
                     {renderInput(field)}
                   </Form.Item>
                 );

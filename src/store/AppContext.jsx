@@ -3,6 +3,7 @@ import { initialState } from '../data/mockData.js';
 import {
   addDays,
   buildDefaultFormData,
+  bumpRevision,
   getLatestSentStep,
   getNextTransmittalNo,
   getTemplateById,
@@ -135,6 +136,15 @@ export function AppProvider({ children }) {
             }
             const sentAt = todayISO();
             const dueDate = action.dueDays ? addDays(sentAt, action.dueDays) : '';
+            const shouldBumpRevision =
+              instance.typeId === 'csf' &&
+              (action.id === 'csf-aip' || action.id === 'csf-not-approved');
+            const attachmentStatuses = action.requiresAttachmentStatus
+              ? instance.attachments.map((attachment) => ({
+                  id: attachment.id,
+                  status: attachment.status,
+                }))
+              : [];
             const newStep = {
               id: `step-${Date.now()}`,
               actionId: action.id,
@@ -146,11 +156,20 @@ export function AppProvider({ children }) {
               dueDate,
               lastStep: action.lastStep,
               requiresAttachmentStatus: action.requiresAttachmentStatus,
+              attachmentStatuses,
               message: message || '',
             };
+            const nextAttachments = shouldBumpRevision
+              ? instance.attachments.map((attachment) => ({
+                  ...attachment,
+                  revision: bumpRevision(attachment.revision),
+                  status: '',
+                }))
+              : instance.attachments;
             return {
               ...instance,
               status: action.closeInstance ? 'Closed' : 'Open',
+              attachments: nextAttachments,
               steps: [...instance.steps, newStep],
             };
           }),
@@ -182,7 +201,7 @@ export function AppProvider({ children }) {
             templates: [...prev.templates, copy],
             types: prev.types.map((type) =>
               type.id === template.typeId
-                ? { ...type, templateIds: [...type.templateIds, newId] }
+                ? { ...type, templateIds: [newId] }
                 : type
             ),
           };
@@ -207,7 +226,7 @@ export function AppProvider({ children }) {
             templates: [...prev.templates, copy],
             types: prev.types.map((type) =>
               type.id === typeId
-                ? { ...type, templateIds: [...type.templateIds, newId] }
+                ? { ...type, templateIds: [newId] }
                 : type
             ),
           };

@@ -55,6 +55,9 @@ export function isInbox(instance, currentRoleId, roles) {
   if (!role || !latest) {
     return false;
   }
+  if (!latest.lastStep) {
+    return false;
+  }
   return latest.toGroup === role.group;
 }
 
@@ -129,10 +132,39 @@ export function isPartialForStep(instance, step) {
   if (!step || !step.requiresAttachmentStatus) {
     return false;
   }
-  if (!instance.attachments || instance.attachments.length === 0) {
+  const statuses = step.attachmentStatuses
+    ? step.attachmentStatuses.map((item) => item.status)
+    : instance.attachments.map((attachment) => attachment.status);
+  if (!statuses || statuses.length === 0) {
     return false;
   }
-  return instance.attachments.some((attachment) => attachment.status && attachment.status !== 'Approved');
+  return statuses.some((status) => status && status !== 'Approved');
+}
+
+export function bumpRevision(revision) {
+  if (!revision) {
+    return 'A';
+  }
+  const text = String(revision).trim();
+  if (!text) {
+    return 'A';
+  }
+  const lastChar = text[text.length - 1];
+  if (/[a-z]/.test(lastChar)) {
+    const next = String.fromCharCode(lastChar.charCodeAt(0) + 1);
+    return text.slice(0, -1) + next;
+  }
+  if (/[A-Z]/.test(lastChar)) {
+    const next = String.fromCharCode(lastChar.charCodeAt(0) + 1);
+    return text.slice(0, -1) + next;
+  }
+  if (/\d/.test(lastChar)) {
+    const num = Number(text);
+    if (!Number.isNaN(num)) {
+      return String(num + 1);
+    }
+  }
+  return text;
 }
 
 export function getPublishIssues(template) {
@@ -152,4 +184,46 @@ export function getPublishIssues(template) {
     }
   });
   return issues;
+}
+
+export function validateFormData(template, formData) {
+  const errors = {};
+  if (!template) {
+    return errors;
+  }
+  template.schema.forEach((field) => {
+    const value = formData[field.key];
+    const label = field.label || field.key;
+    const isEmpty =
+      value === undefined || value === null || value === '' || Number.isNaN(value);
+
+    if (field.required && isEmpty) {
+      errors[field.key] = `${label} is required.`;
+      return;
+    }
+
+    if (field.type === 'text' || field.type === 'textarea') {
+      const textValue = value ? String(value) : '';
+      if (field.minLength !== undefined && textValue.length < field.minLength) {
+        errors[field.key] = `${label} must be at least ${field.minLength} characters.`;
+        return;
+      }
+      if (field.maxLength !== undefined && textValue.length > field.maxLength) {
+        errors[field.key] = `${label} must be under ${field.maxLength} characters.`;
+        return;
+      }
+    }
+
+    if (field.type === 'number' && !isEmpty) {
+      const numeric = Number(value);
+      if (field.min !== undefined && numeric < field.min) {
+        errors[field.key] = `${label} must be at least ${field.min}.`;
+        return;
+      }
+      if (field.max !== undefined && numeric > field.max) {
+        errors[field.key] = `${label} must be at most ${field.max}.`;
+      }
+    }
+  });
+  return errors;
 }

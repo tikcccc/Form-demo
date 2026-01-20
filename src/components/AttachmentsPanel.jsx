@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Button, Card, Form, Input, Modal, Select, Space, Table, Tag, Typography } from '@arco-design/web-react';
+import React, { useMemo, useState } from 'react';
+import { Button, Card, Form, Input, Message, Modal, Select, Space, Table, Tag, Typography } from '@arco-design/web-react';
 
 export default function AttachmentsPanel({
   attachments,
@@ -9,7 +9,13 @@ export default function AttachmentsPanel({
   statusOptions,
 }) {
   const [visible, setVisible] = useState(false);
+  const [selectedRowKeys, setSelectedRowKeys] = useState([]);
   const [form, setForm] = useState({ name: '', type: '', revision: '', remark: '' });
+
+  const selectedAttachments = useMemo(
+    () => attachments.filter((attachment) => selectedRowKeys.includes(attachment.id)),
+    [attachments, selectedRowKeys]
+  );
 
   const handleOk = () => {
     if (!form.name.trim()) {
@@ -23,6 +29,24 @@ export default function AttachmentsPanel({
     });
     setForm({ name: '', type: '', revision: '', remark: '' });
     setVisible(false);
+  };
+
+  const handleDownload = () => {
+    if (selectedAttachments.length === 0) {
+      Message.info('Select attachments to download.');
+      return;
+    }
+    const content = selectedAttachments
+      .map((attachment) => `${attachment.name} (${attachment.type}) Rev ${attachment.revision}`)
+      .join('\\n');
+    const blob = new Blob([content], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = 'attachments.txt';
+    anchor.click();
+    URL.revokeObjectURL(url);
+    Message.success(`Downloaded ${selectedAttachments.length} attachment(s).`);
   };
 
   const columns = [
@@ -66,14 +90,28 @@ export default function AttachmentsPanel({
       title={
         <Space style={{ width: '100%', justifyContent: 'space-between' }}>
           <Typography.Text>Attachments</Typography.Text>
-          <Button size="small" onClick={() => setVisible(true)}>
-            Add Attachment
-          </Button>
+          <Space>
+            <Button size="small" disabled={selectedRowKeys.length === 0} onClick={handleDownload}>
+              Download Selected
+            </Button>
+            <Button size="small" onClick={() => setVisible(true)}>
+              Add Attachment
+            </Button>
+          </Space>
         </Space>
       }
       bordered={false}
     >
-      <Table columns={columns} data={attachments} rowKey="id" pagination={false} />
+      <Table
+        columns={columns}
+        data={attachments}
+        rowKey="id"
+        pagination={false}
+        rowSelection={{
+          selectedRowKeys,
+          onChange: (keys) => setSelectedRowKeys(keys),
+        }}
+      />
       <Modal
         visible={visible}
         title="Add Attachment"

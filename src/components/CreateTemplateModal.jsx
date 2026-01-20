@@ -15,16 +15,22 @@ export default function CreateTemplateModal({ visible, onClose, types, templates
     if (!typeId) {
       return [];
     }
-    return templates
-      .filter((template) => template.typeId === typeId)
-      .map((template) => ({ value: template.id, label: template.name }));
-  }, [templates, typeId]);
+    const type = types.find((item) => item.id === typeId);
+    if (!type) {
+      return [];
+    }
+    const template = templates.find((item) => item.id === type.templateIds[0]);
+    return template ? [{ value: template.id, label: template.name }] : [];
+  }, [templates, typeId, types]);
 
   useEffect(() => {
     if (visible) {
       const defaultType = types[0]?.id || '';
       setTypeId(defaultType);
-      const defaultTemplate = templates.find((template) => template.typeId === defaultType);
+      const defaultTypeItem = types.find((item) => item.id === defaultType);
+      const defaultTemplate = templates.find(
+        (template) => template.id === defaultTypeItem?.templateIds?.[0]
+      );
       setSourceTemplateId(defaultTemplate?.id || '');
       setName('');
     }
@@ -32,7 +38,10 @@ export default function CreateTemplateModal({ visible, onClose, types, templates
 
   useEffect(() => {
     if (typeId) {
-      const defaultTemplate = templates.find((template) => template.typeId === typeId);
+      const typeItem = types.find((item) => item.id === typeId);
+      const defaultTemplate = templates.find(
+        (template) => template.id === typeItem?.templateIds?.[0]
+      );
       setSourceTemplateId(defaultTemplate?.id || '');
     }
   }, [typeId, templates]);

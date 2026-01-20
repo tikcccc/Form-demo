@@ -45,9 +45,9 @@ export const templates = [
         type: 'select',
         options: ['Yes', 'No'],
       },
-      { key: 'costImpact', label: 'Cost Impact (USD)', type: 'number' },
-      { key: 'scheduleImpact', label: 'Schedule Impact (Days)', type: 'number' },
-      { key: 'question', label: 'Question', type: 'textarea', required: true },
+      { key: 'costImpact', label: 'Cost Impact (USD)', type: 'number', min: 0 },
+      { key: 'scheduleImpact', label: 'Schedule Impact (Days)', type: 'number', min: 0 },
+      { key: 'question', label: 'Question', type: 'textarea', required: true, minLength: 10, maxLength: 240 },
     ],
     layout: {
       sections: [
@@ -106,9 +106,9 @@ export const templates = [
         options: ['Client Request', 'Design Update', 'Site Condition'],
         listColumn: true,
       },
-      { key: 'costDelta', label: 'Cost Delta (USD)', type: 'number', listColumn: true },
-      { key: 'timeDelta', label: 'Time Delta (Days)', type: 'number', listColumn: true },
-      { key: 'description', label: 'Description', type: 'textarea', required: true },
+      { key: 'costDelta', label: 'Cost Delta (USD)', type: 'number', listColumn: true, min: 0 },
+      { key: 'timeDelta', label: 'Time Delta (Days)', type: 'number', listColumn: true, min: 0 },
+      { key: 'description', label: 'Description', type: 'textarea', required: true, minLength: 8 },
     ],
     layout: {
       sections: [
@@ -160,6 +160,8 @@ export const templates = [
         type: 'text',
         required: true,
         listColumn: true,
+        minLength: 3,
+        maxLength: 12,
       },
       {
         key: 'package',
@@ -207,7 +209,7 @@ export const templates = [
         allowedRoles: ['mtr', 'cm'],
         toCandidateGroups: ['Contractor'],
         dueDays: 2,
-        lastStep: false,
+        lastStep: true,
         requiresAttachmentStatus: true,
         closeInstance: false,
         statusSet: ['AIP', 'Rejected'],
@@ -218,7 +220,7 @@ export const templates = [
         allowedRoles: ['mtr', 'cm'],
         toCandidateGroups: ['Contractor'],
         dueDays: 2,
-        lastStep: false,
+        lastStep: true,
         requiresAttachmentStatus: true,
         closeInstance: false,
         statusSet: ['Rejected'],

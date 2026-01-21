@@ -31,6 +31,7 @@ export default function AttachmentsPanel({
   const [selectedFileKeys, setSelectedFileKeys] = useState([]);
   const isDraftView = activeViewId === 'draft';
   const canEditDraft = canEdit && isDraftView;
+  const canEditStatus = canEdit && statusRequired;
 
   useEffect(() => {
     setSelectedRowKeys([]);
@@ -165,7 +166,7 @@ export default function AttachmentsPanel({
     {
       title: 'Status',
       render: (_, record) => {
-        if (!statusRequired || !canEditDraft) {
+        if (!statusRequired || !canEditStatus) {
           return record.status ? <Tag color="green">{record.status}</Tag> : '—';
         }
         return (

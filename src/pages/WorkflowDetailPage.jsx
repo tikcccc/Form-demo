@@ -78,7 +78,10 @@ export default function WorkflowDetailPage() {
     ? isUnread(instance, state.currentRoleId, state.roles)
     : false;
   const replyRequired = Boolean(inInbox);
-  const attachmentsReady = instance ? areAttachmentStatusesComplete(instance) : true;
+  const statusTargetStepId = instance && inInbox && latestStep ? latestStep.id : null;
+  const attachmentsReady = instance
+    ? areAttachmentStatusesComplete(instance, statusTargetStepId)
+    : true;
   const isDraft = instance ? instance.steps.length === 0 : false;
   const canEditForm = instance ? instance.status !== 'Closed' && (isDraft || inInbox) : false;
   const requireEditable = Boolean(instance && !isDraft);
@@ -252,8 +255,23 @@ export default function WorkflowDetailPage() {
   const attachmentsForView = isDraftView
     ? draftAttachments
     : attachmentsByStep.get(attachmentViewId) || [];
+  const stepForView = isDraftView
+    ? null
+    : instance.steps.find((step) => step.id === attachmentViewId);
+  const actionForView = stepForView
+    ? template?.actions?.find((action) => action.id === stepForView.actionId)
+    : selectedAction;
+  const statusOptionsForView =
+    actionForView?.statusSet && actionForView.statusSet.length > 0
+      ? actionForView.statusSet
+      : ['Approved', 'Rejected', 'AIP', 'For Info'];
   const statusRequiredForView =
-    isDraftView && canEditAttachments && Boolean(selectedAction?.requiresAttachmentStatus);
+    canEditAttachments &&
+    ((isDraftView && Boolean(selectedAction?.requiresAttachmentStatus)) ||
+      (!isDraftView &&
+        Boolean(stepForView?.requiresAttachmentStatus) &&
+        inInbox &&
+        latestStep?.id === stepForView?.id));
   const isFormDirty = dirtyKeys.length > 0;
   const formValid = !canEditForm || Object.keys(formErrors).length === 0;
   const canTakeAction = instance.status !== 'Closed' && (inInbox || isDraft);
@@ -400,7 +418,7 @@ export default function WorkflowDetailPage() {
             actions.updateAttachmentStatus(instance.id, attachmentId, status)
           }
           statusRequired={statusRequiredForView}
-          statusOptions={selectedAction?.statusSet || ['Approved', 'Rejected', 'AIP', 'For Info']}
+          statusOptions={statusOptionsForView}
           fileLibrary={state.fileLibrary}
           viewOptions={attachmentViewOptions}
           activeViewId={attachmentViewId}

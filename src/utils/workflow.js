@@ -258,15 +258,17 @@ export function getFieldAccess(field, { roleId, actionId, canEdit, requireEditab
   return { visible, editable, required };
 }
 
-export function areAttachmentStatusesComplete(instance) {
+export function areAttachmentStatusesComplete(instance, stepId = null) {
   if (!instance.attachments || instance.attachments.length === 0) {
     return true;
   }
-  const draftAttachments = instance.attachments.filter((attachment) => !attachment.stepId);
-  if (draftAttachments.length === 0) {
+  const attachmentsForCheck = stepId
+    ? instance.attachments.filter((attachment) => attachment.stepId === stepId)
+    : instance.attachments.filter((attachment) => !attachment.stepId);
+  if (attachmentsForCheck.length === 0) {
     return true;
   }
-  return draftAttachments.every((attachment) => attachment.status);
+  return attachmentsForCheck.every((attachment) => attachment.status);
 }
 
 export function isPartialForStep(instance, step) {

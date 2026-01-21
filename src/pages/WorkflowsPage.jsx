@@ -72,6 +72,7 @@ export default function WorkflowsPage() {
   const statusOptions = [
     { value: 'all', label: 'All Status' },
     { value: 'Open', label: 'Open' },
+    { value: 'Received', label: 'Received' },
     { value: 'Closed', label: 'Closed' },
   ];
 

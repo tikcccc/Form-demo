@@ -28,7 +28,7 @@ export default function AttachmentsPanel({
 }) {
   const [visible, setVisible] = useState(false);
   const [selectedRowKeys, setSelectedRowKeys] = useState([]);
-  const [selectedFileKey, setSelectedFileKey] = useState('');
+  const [selectedFileKeys, setSelectedFileKeys] = useState([]);
   const isDraftView = activeViewId === 'draft';
   const canEditDraft = canEdit && isDraftView;
 
@@ -46,6 +46,7 @@ export default function AttachmentsPanel({
       nodes.map((node) => ({
         ...node,
         selectable: node.nodeType === 'file',
+        disableCheckbox: node.nodeType !== 'file',
         children: node.children ? applySelectable(node.children) : undefined,
       }));
     return applySelectable(fileLibrary);
@@ -76,6 +77,7 @@ export default function AttachmentsPanel({
             ? fileName.split('.').pop().toUpperCase()
             : 'FILE';
           map.set(node.key, {
+            key: node.key,
             name: fileName,
             type: node.file?.type || fallbackType,
             revision: node.file?.revision || 'A',
@@ -92,7 +94,10 @@ export default function AttachmentsPanel({
     return map;
   }, [fileLibrary]);
 
-  const selectedFile = selectedFileKey ? fileIndex.get(selectedFileKey) : null;
+  const selectedFiles = useMemo(
+    () => selectedFileKeys.map((key) => fileIndex.get(key)).filter(Boolean),
+    [fileIndex, selectedFileKeys]
+  );
 
   const handleAddClick = () => {
     if (!canEdit) {
@@ -101,22 +106,24 @@ export default function AttachmentsPanel({
     if (onViewChange && !isDraftView) {
       onViewChange('draft');
     }
-    setSelectedFileKey('');
+    setSelectedFileKeys([]);
     setVisible(true);
   };
 
   const handleOk = () => {
-    if (!selectedFile) {
+    if (selectedFiles.length === 0) {
       Message.info('Select a file to add.');
       return;
     }
-    onAdd({
-      name: selectedFile.name,
-      type: selectedFile.type,
-      revision: selectedFile.revision,
-      remark: selectedFile.remark,
+    selectedFiles.forEach((file) => {
+      onAdd({
+        name: file.name,
+        type: file.type,
+        revision: file.revision,
+        remark: file.remark,
+      });
     });
-    setSelectedFileKey('');
+    setSelectedFileKeys([]);
     setVisible(false);
   };
 
@@ -191,24 +198,10 @@ export default function AttachmentsPanel({
   }
 
   return (
-    <Card
-      className="panel-card"
-      title={
+    <Card className="panel-card" bordered={false}>
+      <Space direction="vertical" size={10} style={{ width: '100%' }}>
         <Space style={{ width: '100%', justifyContent: 'space-between' }}>
-          <Space size={12}>
-            <Typography.Text>Attachments</Typography.Text>
-            {viewOptions.length > 1 && onViewChange ? (
-              <Space size={6}>
-                <Typography.Text className="muted">Round</Typography.Text>
-                <Select
-                  size="mini"
-                  value={activeViewId}
-                  onChange={onViewChange}
-                  options={viewOptions}
-                />
-              </Space>
-            ) : null}
-          </Space>
+          <Typography.Text>Attachments</Typography.Text>
           <Space>
             <Button size="small" disabled={selectedRowKeys.length === 0} onClick={handleDownload}>
               Download Selected
@@ -218,25 +211,34 @@ export default function AttachmentsPanel({
             </Button>
           </Space>
         </Space>
-      }
-      bordered={false}
-    >
-      <Table
-        columns={columns}
-        data={attachments}
-        rowKey="id"
-        pagination={false}
-        rowSelection={{
-          selectedRowKeys,
-          onChange: (keys) => setSelectedRowKeys(keys),
-        }}
-      />
+        {viewOptions.length > 1 && onViewChange ? (
+          <Space size={6}>
+            <Typography.Text className="muted">Round</Typography.Text>
+            <Select
+              size="mini"
+              value={activeViewId}
+              onChange={onViewChange}
+              options={viewOptions}
+            />
+          </Space>
+        ) : null}
+        <Table
+          columns={columns}
+          data={attachments}
+          rowKey="id"
+          pagination={false}
+          rowSelection={{
+            selectedRowKeys,
+            onChange: (keys) => setSelectedRowKeys(keys),
+          }}
+        />
+      </Space>
       <Modal
         visible={visible}
         title="Add Attachment"
         onOk={handleOk}
         onCancel={() => {
-          setSelectedFileKey('');
+          setSelectedFileKeys([]);
           setVisible(false);
         }}
         okText="Add"
@@ -261,11 +263,13 @@ export default function AttachmentsPanel({
                 treeData={fileTreeData}
                 showLine
                 blockNode
+                checkable
+                checkStrictly
                 defaultExpandedKeys={expandedKeys}
-                selectedKeys={selectedFileKey ? [selectedFileKey] : []}
-                onSelect={(keys) => {
-                  const nextKey = Array.isArray(keys) ? keys[0] : keys;
-                  setSelectedFileKey(nextKey || '');
+                checkedKeys={selectedFileKeys}
+                onCheck={(checked) => {
+                  const nextKeys = Array.isArray(checked) ? checked : checked?.checked || [];
+                  setSelectedFileKeys(nextKeys.filter((key) => fileIndex.has(key)));
                 }}
               />
             )}
@@ -278,24 +282,30 @@ export default function AttachmentsPanel({
               background: 'var(--color-fill-2)',
             }}
           >
-            <Typography.Text className="muted">Selected file</Typography.Text>
-            {selectedFile ? (
+            <Typography.Text className="muted">
+              Selected files {selectedFiles.length > 0 ? `(${selectedFiles.length})` : ''}
+            </Typography.Text>
+            {selectedFiles.length > 0 ? (
               <Space direction="vertical" size={6} style={{ width: '100%', marginTop: 6 }}>
-                <Typography.Text>{selectedFile.name}</Typography.Text>
-                <Typography.Text className="muted" style={{ fontSize: 12 }}>
-                  {selectedFile.path}
-                </Typography.Text>
-                <Space size={8}>
-                  <Tag>{selectedFile.type}</Tag>
-                  <Tag>Rev {selectedFile.revision}</Tag>
-                </Space>
-                {selectedFile.remark ? (
-                  <Typography.Text className="muted">{selectedFile.remark}</Typography.Text>
-                ) : null}
+                {selectedFiles.map((file) => (
+                  <Space key={file.key || file.name} direction="vertical" size={4}>
+                    <Typography.Text>{file.name}</Typography.Text>
+                    <Typography.Text className="muted" style={{ fontSize: 12 }}>
+                      {file.path}
+                    </Typography.Text>
+                    <Space size={8}>
+                      <Tag>{file.type}</Tag>
+                      <Tag>Rev {file.revision}</Tag>
+                    </Space>
+                    {file.remark ? (
+                      <Typography.Text className="muted">{file.remark}</Typography.Text>
+                    ) : null}
+                  </Space>
+                ))}
               </Space>
             ) : (
               <Typography.Text className="muted" style={{ display: 'block', marginTop: 6 }}>
-                Choose a file to preview details.
+                Choose files to preview details.
               </Typography.Text>
             )}
           </div>

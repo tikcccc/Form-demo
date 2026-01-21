@@ -85,14 +85,14 @@ export function getDueDate(instance) {
 
 export function isOverdue(instance) {
   const dueDate = getDueDate(instance);
-  if (!dueDate || instance.status !== 'Open') {
+  if (!dueDate || instance.status === 'Closed') {
     return false;
   }
   return dueDate < todayISO();
 }
 
 export function isInbox(instance, currentRoleId, roles) {
-  if (instance.status !== 'Open') {
+  if (instance.status === 'Closed') {
     return false;
   }
   const role = getRoleById(roles, currentRoleId);

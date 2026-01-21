@@ -3,6 +3,7 @@ import { Tag } from '@arco-design/web-react';
 
 const colorMap = {
   Open: 'green',
+  Received: 'blue',
   Closed: 'gray',
 };
 

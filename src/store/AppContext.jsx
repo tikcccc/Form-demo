@@ -76,6 +76,7 @@ export function AppProvider({ children }) {
             attachments: [],
             steps: [],
             formHistory: [],
+            activityLog: [],
           };
           return {
             ...prev,
@@ -241,10 +242,27 @@ export function AppProvider({ children }) {
             if (!latest || latest.openedAt) {
               return instance;
             }
+            const role = getRoleById(prev.roles, prev.currentRoleId);
+            const isAdmin = isProjectAdmin(prev.currentRoleId);
+            if (!isAdmin && (!role || latest.toGroup !== role.group)) {
+              return instance;
+            }
+            const openedAt = todayISO();
+            const logAt = new Date().toISOString();
             const nextSteps = instance.steps.map((step) =>
-              step.id === latest.id ? { ...step, openedAt: todayISO() } : step
+              step.id === latest.id ? { ...step, openedAt } : step
             );
-            return { ...instance, steps: nextSteps };
+            const nextStatus = instance.status === 'Open' ? 'Received' : instance.status;
+            const roleLabel = role?.label || prev.currentRoleId;
+            const nextLogEntry = {
+              id: `log-${Date.now()}`,
+              type: 'view',
+              message: `${roleLabel} viewed the details.`,
+              byRoleId: prev.currentRoleId,
+              at: logAt,
+            };
+            const nextActivityLog = [...(instance.activityLog || []), nextLogEntry];
+            return { ...instance, steps: nextSteps, status: nextStatus, activityLog: nextActivityLog };
           }),
         }));
       },
@@ -258,7 +276,7 @@ export function AppProvider({ children }) {
             if (!instance.steps || instance.steps.length === 0) {
               return instance;
             }
-            if (instance.status !== 'Open') {
+            if (instance.status === 'Closed') {
               return instance;
             }
             const latest = getLatestSentStep(instance);
@@ -387,9 +405,14 @@ export function AppProvider({ children }) {
                 }))
               : [];
             const nextAttachments = [...sentAttachments, ...bumpedDraftAttachments];
+            const nextStatus = action.closeInstance
+              ? instance.status === 'Received'
+                ? 'Closed'
+                : instance.status
+              : 'Open';
             return {
               ...instance,
-              status: action.closeInstance ? 'Closed' : 'Open',
+              status: nextStatus,
               attachments: nextAttachments,
               steps: [...instance.steps, newStep],
             };

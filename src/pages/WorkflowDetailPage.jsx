@@ -39,7 +39,7 @@ export default function WorkflowDetailPage() {
   const [attachmentViewId, setAttachmentViewId] = useState('draft');
   const [delegateGroup, setDelegateGroup] = useState('');
   const [delegateNote, setDelegateNote] = useState('');
-  const [draftFormData, setDraftFormData] = useState({});
+  const [draftFormData, setDraftFormData] = useState(() => instance?.formData || {});
   const [dirtyKeys, setDirtyKeys] = useState([]);
 
   useEffect(() => {
@@ -80,12 +80,12 @@ export default function WorkflowDetailPage() {
   const replyRequired = Boolean(inInbox);
   const attachmentsReady = instance ? areAttachmentStatusesComplete(instance) : true;
   const isDraft = instance ? instance.steps.length === 0 : false;
-  const canEditForm = instance ? instance.status === 'Open' && (isDraft || inInbox) : false;
+  const canEditForm = instance ? instance.status !== 'Closed' && (isDraft || inInbox) : false;
   const requireEditable = Boolean(instance && !isDraft);
   const actionContextId =
     selectedActionId || (availableActions.length === 1 ? availableActions[0].id : '');
   const canEditAttachments = instance
-    ? instance.status === 'Open' &&
+    ? instance.status !== 'Closed' &&
       (isProjectAdmin(state.currentRoleId) ||
         instance.createdBy === state.currentRoleId ||
         inInbox ||
@@ -139,6 +139,15 @@ export default function WorkflowDetailPage() {
       setSelectedToGroup('');
     }
   }, [selectedActionId, selectedAction]);
+
+  useEffect(() => {
+    if (!instance || !inInbox) {
+      return;
+    }
+    if (instance.status === 'Open' && latestStep && !latestStep.openedAt) {
+      actions.markOpened(instance.id);
+    }
+  }, [actions, inInbox, instance, latestStep]);
 
   const allowDelegate = Boolean(latestStep?.allowDelegate ?? latestAction?.allowDelegate);
   const delegateOptions = useMemo(() => {
@@ -247,7 +256,7 @@ export default function WorkflowDetailPage() {
     isDraftView && canEditAttachments && Boolean(selectedAction?.requiresAttachmentStatus);
   const isFormDirty = dirtyKeys.length > 0;
   const formValid = !canEditForm || Object.keys(formErrors).length === 0;
-  const canTakeAction = instance.status === 'Open' && (inInbox || isDraft);
+  const canTakeAction = instance.status !== 'Closed' && (inInbox || isDraft);
   const createdByLabel = getRoleById(state.roles, instance.createdBy)?.label || instance.createdBy;
   const delegateEnabled = Boolean(
     showDelegatePanel && delegateOptions.length > 0 && delegateGroup

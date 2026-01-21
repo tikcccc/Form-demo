@@ -5,8 +5,9 @@ import { getRoleById, isPartialForStep } from '../utils/workflow.js';
 export default function TimelinePanel({ instance, roles }) {
   const steps = instance.steps || [];
   const formHistory = instance.formHistory || [];
+  const activityLog = instance.activityLog || [];
 
-  if (steps.length === 0 && formHistory.length === 0) {
+  if (steps.length === 0 && formHistory.length === 0 && activityLog.length === 0) {
     return (
       <Card className="panel-card" title="Timeline" bordered={false}>
         <Typography.Text className="muted">No activity yet.</Typography.Text>
@@ -61,6 +62,12 @@ export default function TimelinePanel({ instance, roles }) {
     })),
     ...formHistory.map((entry, index) => ({
       type: 'form',
+      timestamp: toTimestamp(entry.at),
+      order: index,
+      entry,
+    })),
+    ...activityLog.map((entry, index) => ({
+      type: 'log',
       timestamp: toTimestamp(entry.at),
       order: index,
       entry,
@@ -121,23 +128,42 @@ export default function TimelinePanel({ instance, roles }) {
             );
           }
 
+          if (event.type === 'form') {
+            const { entry } = event;
+            const byLabel = getRoleById(roles, entry.byRoleId)?.label || entry.byRoleId || '-';
+            return (
+              <div key={entry.id || `${entry.fieldKey}-${entry.at}`} className="timeline-item">
+                <Space direction="vertical" size={4} style={{ width: '100%' }}>
+                  <Space>
+                    <Typography.Text strong>
+                      {entry.fieldLabel || entry.fieldKey || 'Field'} updated
+                    </Typography.Text>
+                    <Tag color="blue">Form</Tag>
+                  </Space>
+                  <Typography.Text className="muted">
+                    By {byLabel}
+                    {entry.at ? ` at ${formatTimestamp(entry.at)}` : ''}
+                  </Typography.Text>
+                  <Typography.Text className="muted">
+                    {formatValue(entry.from)} → {formatValue(entry.to)}
+                  </Typography.Text>
+                </Space>
+              </div>
+            );
+          }
+
           const { entry } = event;
           const byLabel = getRoleById(roles, entry.byRoleId)?.label || entry.byRoleId || '-';
           return (
-            <div key={entry.id || `${entry.fieldKey}-${entry.at}`} className="timeline-item">
+            <div key={entry.id || `${entry.type}-${entry.at}`} className="timeline-item">
               <Space direction="vertical" size={4} style={{ width: '100%' }}>
                 <Space>
-                  <Typography.Text strong>
-                    {entry.fieldLabel || entry.fieldKey || 'Field'} updated
-                  </Typography.Text>
-                  <Tag color="blue">Form</Tag>
+                  <Typography.Text strong>{entry.message || 'Activity'}</Typography.Text>
+                  <Tag>Log</Tag>
                 </Space>
                 <Typography.Text className="muted">
                   By {byLabel}
                   {entry.at ? ` at ${formatTimestamp(entry.at)}` : ''}
-                </Typography.Text>
-                <Typography.Text className="muted">
-                  {formatValue(entry.from)} → {formatValue(entry.to)}
                 </Typography.Text>
               </Space>
             </div>

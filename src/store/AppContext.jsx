@@ -69,7 +69,7 @@ export function AppProvider({ children }) {
             transmittalNo,
             templateId,
             title: instanceTitle,
-            status: 'Open',
+            status: 'Sent',
             createdBy: prev.currentRoleId,
             createdAt: todayISO(),
             formData,
@@ -191,7 +191,7 @@ export function AppProvider({ children }) {
               return instance;
             }
             const nextAttachment = {
-              id: `att-${Date.now()}`,
+              id: `att-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
               stepId: '',
               status: '',
               ...attachment,
@@ -243,8 +243,7 @@ export function AppProvider({ children }) {
               return instance;
             }
             const role = getRoleById(prev.roles, prev.currentRoleId);
-            const isAdmin = isProjectAdmin(prev.currentRoleId);
-            if (!isAdmin && (!role || latest.toGroup !== role.group)) {
+            if (!role || latest.toGroup !== role.group) {
               return instance;
             }
             const openedAt = todayISO();
@@ -252,7 +251,7 @@ export function AppProvider({ children }) {
             const nextSteps = instance.steps.map((step) =>
               step.id === latest.id ? { ...step, openedAt } : step
             );
-            const nextStatus = instance.status === 'Open' ? 'Received' : instance.status;
+            const nextStatus = instance.status === 'Sent' ? 'Received' : instance.status;
             const roleLabel = role?.label || prev.currentRoleId;
             const nextLogEntry = {
               id: `log-${Date.now()}`,
@@ -409,7 +408,7 @@ export function AppProvider({ children }) {
               ? instance.status === 'Received'
                 ? 'Closed'
                 : instance.status
-              : 'Open';
+              : 'Sent';
             return {
               ...instance,
               status: nextStatus,

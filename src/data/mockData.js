@@ -428,7 +428,7 @@ export const instances = [
     transmittalNo: 'RFI-2024-0001',
     templateId: 'rfi-default',
     title: 'Clarify beam connection',
-    status: 'Open',
+    status: 'Sent',
     createdBy: 'contractor',
     createdAt: '2024-10-02',
     formData: {
@@ -473,7 +473,7 @@ export const instances = [
     transmittalNo: 'CSF-2024-0004',
     templateId: 'csf-default',
     title: 'Facade anchor system',
-    status: 'Open',
+    status: 'Sent',
     createdBy: 'contractor',
     createdAt: '2024-10-05',
     formData: {
@@ -578,7 +578,7 @@ export const instances = [
     transmittalNo: 'COR-2024-0008',
     templateId: 'cor-default',
     title: 'Basement waterproofing change',
-    status: 'Open',
+    status: 'Sent',
     createdBy: 'contractor',
     createdAt: '2024-10-10',
     formData: {

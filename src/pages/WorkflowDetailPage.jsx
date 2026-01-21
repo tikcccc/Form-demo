@@ -144,7 +144,7 @@ export default function WorkflowDetailPage() {
     if (!instance || !inInbox) {
       return;
     }
-    if (instance.status === 'Open' && latestStep && !latestStep.openedAt) {
+    if (instance.status === 'Sent' && latestStep && !latestStep.openedAt) {
       actions.markOpened(instance.id);
     }
   }, [actions, inInbox, instance, latestStep]);

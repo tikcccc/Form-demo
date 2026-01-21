@@ -7,7 +7,7 @@ export default function CommonFieldsForm({
   onValueChange,
 }) {
   if (!fields || fields.length === 0) {
-    return <Typography.Text className="muted">No common fields configured.</Typography.Text>;
+    return <Typography.Text className="muted">No shared fields configured.</Typography.Text>;
   }
 
   const renderInput = (field) => {

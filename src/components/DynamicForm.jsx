@@ -86,7 +86,7 @@ export default function DynamicForm({
   return (
     <div>
       {commonFields.length > 0 && (
-        <Card className="panel-card form-section" title="Common Fields" bordered={false}>
+        <Card className="panel-card form-section" title="Shared Fields" bordered={false}>
           <Form layout="vertical">
             {commonFields.map((field) => (
               <Form.Item key={field.key} label={field.label}>

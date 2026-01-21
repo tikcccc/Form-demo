@@ -128,7 +128,7 @@ export default function SchemaTab({ template }) {
     }
     const commonFieldKeys = new Set((state.commonFields || []).map((field) => field.key));
     if (!editingField && commonFieldKeys.has(key)) {
-      Message.error('Field key conflicts with a common field.');
+      Message.error('Field key conflicts with a shared field.');
       return;
     }
     const options = formState.options.map((item) => item.trim()).filter(Boolean);

@@ -95,7 +95,7 @@ export default function TemplatesPage() {
       </Card>
       <Card className="page-card">
         <Typography.Title heading={5} style={{ marginTop: 0 }}>
-          Common Fields
+          Shared Fields
         </Typography.Title>
         <CommonFieldsPanel />
       </Card>

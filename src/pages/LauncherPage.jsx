@@ -69,7 +69,7 @@ export default function LauncherPage() {
               <Input value={title} onChange={setTitle} placeholder="Optional" />
             </Form.Item>
           )}
-          <Typography.Text className="muted">Common Fields</Typography.Text>
+          <Typography.Text className="muted">Shared Fields</Typography.Text>
           <CommonFieldsForm
             fields={commonFields}
             values={commonValues}

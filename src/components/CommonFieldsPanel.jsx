@@ -183,7 +183,7 @@ export default function CommonFieldsPanel() {
     <Space direction="vertical" size={16} style={{ width: '100%' }}>
       <Space style={{ width: '100%', justifyContent: 'space-between' }}>
         <Typography.Text className="muted">
-          Common fields appear at the top of every workflow form.
+          Shared fields appear at the top of every workflow form.
         </Typography.Text>
         <Button type="primary" onClick={() => openDrawer(null)}>
           Add Field
@@ -198,7 +198,7 @@ export default function CommonFieldsPanel() {
       <Drawer
         width={420}
         visible={drawerVisible}
-        title={editingField ? 'Edit Common Field' : 'Add Common Field'}
+        title={editingField ? 'Edit Shared Field' : 'Add Shared Field'}
         onOk={handleSave}
         onCancel={() => setDrawerVisible(false)}
         okText="Save"

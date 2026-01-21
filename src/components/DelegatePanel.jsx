@@ -3,6 +3,7 @@ import { Button, Card, Input, Select, Space, Typography } from '@arco-design/web
 
 export default function DelegatePanel({
   currentGroup,
+  delegateGroups = [],
   options,
   selectedGroup,
   onSelectGroup,
@@ -12,17 +13,23 @@ export default function DelegatePanel({
   disabled = false,
 }) {
   const canDelegate =
-    !disabled && Boolean(selectedGroup) && selectedGroup !== currentGroup;
+    !disabled &&
+    Boolean(selectedGroup) &&
+    selectedGroup !== currentGroup &&
+    !delegateGroups.includes(selectedGroup);
+  const hasDelegates = delegateGroups.length > 0;
+  const delegateSummary = hasDelegates ? delegateGroups.join(', ') : 'None';
 
   return (
-    <Card className="panel-card" title="Delegate Step" bordered={false}>
+    <Card className="panel-card" title="Delegate Access" bordered={false}>
       <Space direction="vertical" size={12} style={{ width: '100%' }}>
         <Typography.Text className="muted">
-          Current To: {currentGroup || '-'}.
-          Handover responsibility to another group.
+          Current recipient: {currentGroup || '-'}.
+          Delegation grants additional access without removing the original recipient.
+          {` Delegated groups: ${delegateSummary}.`}
         </Typography.Text>
         <Select
-          placeholder="Delegate to"
+          placeholder="Add delegate group"
           value={selectedGroup || undefined}
           onChange={onSelectGroup}
           options={options}
@@ -35,7 +42,7 @@ export default function DelegatePanel({
           onChange={onNoteChange}
         />
         <Button type="primary" disabled={!canDelegate} onClick={onDelegate}>
-          Delegate
+          Add Delegate
         </Button>
         {options.length === 0 && (
           <Typography.Text className="muted">

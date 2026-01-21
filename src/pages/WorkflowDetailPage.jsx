@@ -16,6 +16,7 @@ import {
   getDueDate,
   getLatestSentStep,
   getLoopCount,
+  getRecipientGroupsForStep,
   getRoleById,
   getRoleGroup,
   getTemplateById,
@@ -71,6 +72,10 @@ export default function WorkflowDetailPage() {
     ? availableActions.find((action) => action.id === actionContextId)
     : null;
   const latestStep = instance ? getLatestSentStep(instance) : null;
+  const latestRecipientGroups = useMemo(
+    () => getRecipientGroupsForStep(latestStep),
+    [latestStep]
+  );
   const latestAction = useMemo(() => {
     if (!template || !latestStep) {
       return null;
@@ -177,14 +182,15 @@ export default function WorkflowDetailPage() {
     if (!currentRole) {
       return;
     }
-    if (latestStep.toGroup !== getRoleGroup(currentRole)) {
+    const roleGroup = getRoleGroup(currentRole);
+    if (!roleGroup || !latestRecipientGroups.includes(roleGroup)) {
       return;
     }
     if (instance.status === 'Closed' || latestStep.openedAt) {
       return;
     }
     actions.markOpened(instance.id);
-  }, [actions, instance, latestStep, state.currentRoleId, state.roles]);
+  }, [actions, instance, latestRecipientGroups, latestStep, state.currentRoleId, state.roles]);
 
   const allowDelegate = Boolean(latestStep?.allowDelegate ?? latestAction?.allowDelegate);
   const delegateOptions = useMemo(() => {
@@ -196,9 +202,9 @@ export default function WorkflowDetailPage() {
       : state.roles.map((role) => getRoleGroup(role));
     const uniqueGroups = Array.from(new Set(baseGroups));
     return uniqueGroups
-      .filter((group) => group && group !== latestStep.toGroup)
+      .filter((group) => group && !latestRecipientGroups.includes(group))
       .map((group) => ({ value: group, label: group }));
-  }, [latestAction, latestStep, state.roles]);
+  }, [latestAction, latestRecipientGroups, latestStep, state.roles]);
   const showDelegatePanel = Boolean(inInbox && latestStep && allowDelegate);
 
   useEffect(() => {
@@ -337,7 +343,11 @@ export default function WorkflowDetailPage() {
   };
 
   const handleDelegate = () => {
-    if (!delegateEnabled || delegateGroup === latestStep?.toGroup) {
+    if (
+      !delegateEnabled ||
+      !latestStep ||
+      latestRecipientGroups.includes(delegateGroup)
+    ) {
       return;
     }
     actions.delegateStep({
@@ -413,23 +423,6 @@ export default function WorkflowDetailPage() {
           )}
         </Space>
         <Space direction="vertical" size={12} style={{ width: '100%' }}>
-          <AttachmentsPanel
-            title="Incoming Attachments"
-            description={
-              latestStepLabel
-                ? `From ${latestStepLabel}. Set status when required.`
-                : 'From the previous step. Set status when required.'
-            }
-            attachments={incomingAttachments}
-            onStatusChange={(attachmentId, status) =>
-              actions.updateAttachmentStatus(instance.id, attachmentId, status)
-            }
-            statusRequired={statusRequiredForIncoming}
-            statusOptions={statusOptionsForIncoming}
-            showAdd={false}
-            activeViewId="incoming"
-            canEdit={Boolean(statusRequiredForIncoming)}
-          />
           {showCurrentAttachments ? (
             <AttachmentsPanel
               title="Current Attachments"
@@ -447,6 +440,23 @@ export default function WorkflowDetailPage() {
               canEdit={canEditAttachments}
             />
           ) : null}
+          <AttachmentsPanel
+            title="Incoming Attachments"
+            description={
+              latestStepLabel
+                ? `From ${latestStepLabel}. Set status when required.`
+                : 'From the previous step. Set status when required.'
+            }
+            attachments={incomingAttachments}
+            onStatusChange={(attachmentId, status) =>
+              actions.updateAttachmentStatus(instance.id, attachmentId, status)
+            }
+            statusRequired={statusRequiredForIncoming}
+            statusOptions={statusOptionsForIncoming}
+            showAdd={false}
+            activeViewId="incoming"
+            canEdit={Boolean(statusRequiredForIncoming)}
+          />
           <AttachmentsPanel
             title="Attachment History"
             description={
@@ -466,6 +476,7 @@ export default function WorkflowDetailPage() {
           {showDelegatePanel && (
             <DelegatePanel
               currentGroup={latestStep?.toGroup}
+              delegateGroups={latestStep?.delegateGroups || []}
               options={delegateOptions}
               selectedGroup={delegateGroup}
               onSelectGroup={setDelegateGroup}

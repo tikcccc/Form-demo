@@ -8,6 +8,7 @@ import {
   getAvailableActionsForInstance,
   getLatestSentStep,
   getNextTransmittalNo,
+  getRecipientGroupsForStep,
   getRoleById,
   getRoleGroup,
   getTemplateById,
@@ -308,7 +309,11 @@ export function AppProvider({ children }) {
               return instance;
             }
             const role = getRoleById(prev.roles, prev.currentRoleId);
-            if (!role || latest.toGroup !== getRoleGroup(role)) {
+            if (!role) {
+              return instance;
+            }
+            const roleGroup = getRoleGroup(role);
+            if (!roleGroup || !getRecipientGroupsForStep(latest).includes(roleGroup)) {
               return instance;
             }
             const template = getTemplateById(prev.templates, instance.templateId);
@@ -356,10 +361,17 @@ export function AppProvider({ children }) {
             }
             const role = getRoleById(prev.roles, prev.currentRoleId);
             const isAdmin = isProjectAdmin(prev.currentRoleId);
-            if (!isAdmin && (!role || latest.toGroup !== getRoleGroup(role))) {
-              return instance;
+            if (!isAdmin) {
+              if (!role) {
+                return instance;
+              }
+              const roleGroup = getRoleGroup(role);
+              if (!roleGroup || !getRecipientGroupsForStep(latest).includes(roleGroup)) {
+                return instance;
+              }
             }
-            if (!toGroup || toGroup === latest.toGroup) {
+            const recipientGroups = getRecipientGroupsForStep(latest);
+            if (!toGroup || recipientGroups.includes(toGroup)) {
               return instance;
             }
             const template = getTemplateById(prev.templates, instance.templateId);
@@ -382,15 +394,13 @@ export function AppProvider({ children }) {
               if (step.id !== latest.id) {
                 return step;
               }
-              const nextCcRoleIds = step.ccRoleIds || [];
-              const updatedCcRoleIds = nextCcRoleIds.includes(prev.currentRoleId)
-                ? nextCcRoleIds
-                : [...nextCcRoleIds, prev.currentRoleId];
+              const currentDelegates = step.delegateGroups || [];
+              const nextDelegates = currentDelegates.includes(toGroup)
+                ? currentDelegates
+                : [...currentDelegates, toGroup];
               return {
                 ...step,
-                toGroup,
-                openedAt: '',
-                ccRoleIds: updatedCcRoleIds,
+                delegateGroups: nextDelegates,
                 delegationHistory: [...(step.delegationHistory || []), entry],
               };
             });
@@ -419,8 +429,14 @@ export function AppProvider({ children }) {
               if (!latest || !latest.lastStep) {
                 return instance;
               }
-              if (!isAdmin && (!role || latest.toGroup !== getRoleGroup(role))) {
-                return instance;
+              if (!isAdmin) {
+                if (!role) {
+                  return instance;
+                }
+                const roleGroup = getRoleGroup(role);
+                if (!roleGroup || !getRecipientGroupsForStep(latest).includes(roleGroup)) {
+                  return instance;
+                }
               }
             }
             const template = getTemplateById(prev.templates, instance.templateId);
@@ -465,6 +481,7 @@ export function AppProvider({ children }) {
               allowDelegate: Boolean(action.allowDelegate),
               requiresAttachmentStatus: action.requiresAttachmentStatus,
               attachmentStatuses,
+              delegateGroups: [],
               ccRoleIds: action.ccRoleIds || [],
               message: message || '',
             };

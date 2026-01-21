@@ -65,7 +65,6 @@ export default function TimelinePanel({ instance, roles }) {
     steps.forEach((step, index) => {
       events.push({
         type: 'action',
-        kind: step.lastStep ? 'send' : 'reply',
         timestamp: toTimestamp(step.sentAt),
         order: events.length,
         step,
@@ -126,13 +125,11 @@ export default function TimelinePanel({ instance, roles }) {
                   const fromLabel =
                     getRoleById(roles, step.fromRoleId)?.label || step.fromRoleId;
                   const partial = isPartialForStep(instance, step);
-                  const actionLabel = event.kind === 'send' ? 'Send' : 'Reply';
                   return (
                     <div key={`action-${step.id}`} className="timeline-item">
                       <Space direction="vertical" size={4} style={{ width: '100%' }}>
                         <Space>
-                          <Typography.Text strong>{actionLabel}</Typography.Text>
-                          <Tag>{step.actionLabel}</Tag>
+                          <Typography.Text strong>{getStepLabel(step)}</Typography.Text>
                           {partial ? <Tag color="gold">Partial</Tag> : null}
                         </Space>
                         <Typography.Text className="muted">
@@ -164,11 +161,12 @@ export default function TimelinePanel({ instance, roles }) {
                     >
                       <Space direction="vertical" size={4} style={{ width: '100%' }}>
                         <Space>
-                          <Typography.Text strong>Delegate</Typography.Text>
+                          <Typography.Text strong>Delegate Access</Typography.Text>
                           <Tag>{getStepLabel(step)}</Tag>
                         </Space>
                         <Typography.Text className="muted">
-                          From {entry.fromGroup || '-'} → {entry.toGroup || '-'}
+                          Added access for {entry.toGroup || '-'}
+                          {entry.fromGroup ? ` (original: ${entry.fromGroup})` : ''}
                         </Typography.Text>
                         <Typography.Text className="muted">
                           By {byLabel}

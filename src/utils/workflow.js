@@ -297,11 +297,11 @@ export function isPartialForStep(instance, step) {
   return statuses.some((status) => status && status !== 'Approved');
 }
 
-export function bumpRevision(revision) {
-  if (!revision) {
+export function bumpVersion(version) {
+  if (!version) {
     return 'A';
   }
-  const text = String(revision).trim();
+  const text = String(version).trim();
   if (!text) {
     return 'A';
   }
@@ -323,7 +323,7 @@ export function bumpRevision(revision) {
   return text;
 }
 
-export function getPublishIssues(template) {
+export function getPublishIssues(template, roles = []) {
   const issues = [];
   if (!template.actions || template.actions.length === 0) {
     issues.push('At least one action is required.');
@@ -343,6 +343,10 @@ export function getPublishIssues(template) {
     const actions = template.actions || [];
     const actionIds = actions.map((action) => action.id);
     const actionIdSet = new Set(actionIds);
+    const roleGroupMap = new Map(roles.map((role) => [role.id, getRoleGroup(role)]));
+    const roleLabelMap = new Map(roles.map((role) => [role.id, role.label || role.id]));
+    const getGroupForRole = (roleId) => roleGroupMap.get(roleId) || roleId;
+    const getLabelForRole = (roleId) => roleLabelMap.get(roleId) || roleId;
     const startActions = actions.filter((action) => action.isStart);
     if (startActions.length === 0) {
       issues.push('Exactly one start action is required when flow is enabled.');
@@ -355,12 +359,27 @@ export function getPublishIssues(template) {
 
     actions.forEach((action) => {
       const nextIds = action.nextActionIds || [];
+      const recipientGroups = new Set(action.toCandidateGroups || []);
       if (nextIds.includes(action.id)) {
         issues.push(`Action "${action.label}" cannot link to itself.`);
       }
       nextIds.forEach((id) => {
         if (!actionIdSet.has(id)) {
           issues.push(`Action "${action.label}" links to missing action "${id}".`);
+          return;
+        }
+        const nextAction = actions.find((item) => item.id === id);
+        if (!nextAction) {
+          return;
+        }
+        const missingRoles = (nextAction.allowedRoles || []).filter(
+          (roleId) => !recipientGroups.has(getGroupForRole(roleId))
+        );
+        if (missingRoles.length > 0) {
+          const missingLabels = missingRoles.map(getLabelForRole).join(', ');
+          issues.push(
+            `Action "${action.label}" recipients must include initiators of next action "${nextAction.label}" (missing: ${missingLabels}).`
+          );
         }
       });
       if (action.closeInstance && nextIds.length > 0) {

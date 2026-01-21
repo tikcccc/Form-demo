@@ -1,19 +1,13 @@
-import React from 'react';
-import { Card, Space, Tag, Typography } from '@arco-design/web-react';
+import React, { useMemo } from 'react';
+import { Card, Space, Tabs, Tag, Typography } from '@arco-design/web-react';
 import { getRoleById, isPartialForStep } from '../utils/workflow.js';
+
+const { TabPane } = Tabs;
 
 export default function TimelinePanel({ instance, roles }) {
   const steps = instance.steps || [];
   const formHistory = instance.formHistory || [];
   const activityLog = instance.activityLog || [];
-
-  if (steps.length === 0 && formHistory.length === 0 && activityLog.length === 0) {
-    return (
-      <Card className="panel-card" title="Timeline" bordered={false}>
-        <Typography.Text className="muted">No activity yet.</Typography.Text>
-      </Card>
-    );
-  }
 
   const formatValue = (value) => {
     if (value === undefined || value === null) {
@@ -53,123 +47,202 @@ export default function TimelinePanel({ instance, roles }) {
     return date.getTime();
   };
 
-  const events = [
-    ...steps.map((step, index) => ({
-      type: 'step',
-      timestamp: toTimestamp(step.sentAt),
-      order: index,
-      step,
-    })),
-    ...formHistory.map((entry, index) => ({
-      type: 'form',
-      timestamp: toTimestamp(entry.at),
-      order: index,
-      entry,
-    })),
-    ...activityLog.map((entry, index) => ({
-      type: 'log',
-      timestamp: toTimestamp(entry.at),
-      order: index,
-      entry,
-    })),
-  ].sort((a, b) => {
-    if (a.timestamp === b.timestamp) {
-      if (a.type === b.type) {
+  const stepIndexMap = useMemo(
+    () => new Map(steps.map((step, index) => [step.id, index])),
+    [steps]
+  );
+
+  const getStepLabel = (step) => {
+    const index = stepIndexMap.get(step.id);
+    if (index === undefined) {
+      return step.actionLabel || 'Step';
+    }
+    return `Step ${index + 1} - ${step.actionLabel}`;
+  };
+
+  const progressEvents = useMemo(() => {
+    const events = [];
+    steps.forEach((step, index) => {
+      events.push({
+        type: 'action',
+        kind: step.lastStep ? 'send' : 'reply',
+        timestamp: toTimestamp(step.sentAt),
+        order: events.length,
+        step,
+        stepIndex: index,
+      });
+      (step.delegationHistory || []).forEach((entry) => {
+        events.push({
+          type: 'delegate',
+          timestamp: toTimestamp(entry.at),
+          order: events.length,
+          step,
+          stepIndex: index,
+          entry,
+        });
+      });
+    });
+    activityLog.forEach((entry) => {
+      events.push({
+        type: 'view',
+        timestamp: toTimestamp(entry.at),
+        order: events.length,
+        entry,
+      });
+    });
+    return events.sort((a, b) => {
+      if (a.timestamp === b.timestamp) {
         return a.order - b.order;
       }
-      return a.type === 'step' ? -1 : 1;
-    }
-    return a.timestamp - b.timestamp;
-  });
+      return a.timestamp - b.timestamp;
+    });
+  }, [activityLog, steps]);
+
+  const editEvents = useMemo(() => {
+    const events = formHistory.map((entry, index) => ({
+      entry,
+      timestamp: toTimestamp(entry.at),
+      order: index,
+    }));
+    return events.sort((a, b) => {
+      if (a.timestamp === b.timestamp) {
+        return a.order - b.order;
+      }
+      return a.timestamp - b.timestamp;
+    });
+  }, [formHistory]);
 
   return (
     <Card className="panel-card" title="Timeline" bordered={false}>
-      <Space direction="vertical" size={12} style={{ width: '100%' }}>
-        {events.map((event) => {
-          if (event.type === 'step') {
-            const { step } = event;
-            const fromLabel = getRoleById(roles, step.fromRoleId)?.label || step.fromRoleId;
-            const partial = isPartialForStep(instance, step);
-            const delegationHistory = step.delegationHistory || [];
-            const latestDelegation = delegationHistory[delegationHistory.length - 1];
-            const delegateByLabel = latestDelegation
-              ? getRoleById(roles, latestDelegation.byRoleId)?.label || latestDelegation.byRoleId
-              : '';
-            return (
-              <div key={step.id} className="timeline-item">
-                <Space direction="vertical" size={4} style={{ width: '100%' }}>
-                  <Space>
-                    <Typography.Text strong>{step.actionLabel}</Typography.Text>
-                    {partial ? <Tag color="gold">Partial</Tag> : null}
-                  </Space>
-                  <Typography.Text className="muted">
-                    From {fromLabel} → {step.toGroup}
-                  </Typography.Text>
-                  <Space wrap>
-                    <Tag>Sent {step.sentAt}</Tag>
-                    {step.openedAt ? <Tag>Opened {step.openedAt}</Tag> : null}
-                    {step.dueDate ? <Tag>Due {step.dueDate}</Tag> : null}
-                    {step.lastStep ? <Tag color="red">Reply required</Tag> : null}
-                  </Space>
-                  {step.message ? (
-                    <Typography.Text className="muted">Message: {step.message}</Typography.Text>
-                  ) : null}
-                  {latestDelegation ? (
-                    <Typography.Text className="muted">
-                      Delegated {latestDelegation.fromGroup || '-'} →{' '}
-                      {latestDelegation.toGroup || '-'}
-                      {delegateByLabel ? ` by ${delegateByLabel}` : ''}
-                      {latestDelegation.at ? ` on ${latestDelegation.at}` : ''}
-                      {latestDelegation.note ? ` - Note: ${latestDelegation.note}` : ''}
-                    </Typography.Text>
-                  ) : null}
-                </Space>
-              </div>
-            );
-          }
+      <Tabs defaultActiveTab="progress" type="text">
+        <TabPane key="progress" title="Progress">
+          {progressEvents.length === 0 ? (
+            <Typography.Text className="muted">No progress yet.</Typography.Text>
+          ) : (
+            <Space direction="vertical" size={12} style={{ width: '100%' }}>
+              {progressEvents.map((event) => {
+                if (event.type === 'action') {
+                  const { step } = event;
+                  const fromLabel =
+                    getRoleById(roles, step.fromRoleId)?.label || step.fromRoleId;
+                  const partial = isPartialForStep(instance, step);
+                  const actionLabel = event.kind === 'send' ? 'Send' : 'Reply';
+                  return (
+                    <div key={`action-${step.id}`} className="timeline-item">
+                      <Space direction="vertical" size={4} style={{ width: '100%' }}>
+                        <Space>
+                          <Typography.Text strong>{actionLabel}</Typography.Text>
+                          <Tag>{step.actionLabel}</Tag>
+                          {partial ? <Tag color="gold">Partial</Tag> : null}
+                        </Space>
+                        <Typography.Text className="muted">
+                          From {fromLabel} → {step.toGroup}
+                        </Typography.Text>
+                        <Space wrap>
+                          <Tag>Sent {step.sentAt}</Tag>
+                          {step.dueDate ? <Tag>Due {step.dueDate}</Tag> : null}
+                          {step.lastStep ? <Tag color="red">Reply required</Tag> : null}
+                        </Space>
+                        {step.message ? (
+                          <Typography.Text className="muted">
+                            Message: {step.message}
+                          </Typography.Text>
+                        ) : null}
+                      </Space>
+                    </div>
+                  );
+                }
 
-          if (event.type === 'form') {
-            const { entry } = event;
-            const byLabel = getRoleById(roles, entry.byRoleId)?.label || entry.byRoleId || '-';
-            return (
-              <div key={entry.id || `${entry.fieldKey}-${entry.at}`} className="timeline-item">
-                <Space direction="vertical" size={4} style={{ width: '100%' }}>
-                  <Space>
-                    <Typography.Text strong>
-                      {entry.fieldLabel || entry.fieldKey || 'Field'} updated
-                    </Typography.Text>
-                    <Tag color="blue">Form</Tag>
-                  </Space>
-                  <Typography.Text className="muted">
-                    By {byLabel}
-                    {entry.at ? ` at ${formatTimestamp(entry.at)}` : ''}
-                  </Typography.Text>
-                  <Typography.Text className="muted">
-                    {formatValue(entry.from)} → {formatValue(entry.to)}
-                  </Typography.Text>
-                </Space>
-              </div>
-            );
-          }
+                if (event.type === 'delegate') {
+                  const { step, entry } = event;
+                  const byLabel =
+                    getRoleById(roles, entry.byRoleId)?.label || entry.byRoleId || '-';
+                  return (
+                    <div
+                      key={`delegate-${step.id}-${entry.at || ''}-${entry.byRoleId || ''}`}
+                      className="timeline-item"
+                    >
+                      <Space direction="vertical" size={4} style={{ width: '100%' }}>
+                        <Space>
+                          <Typography.Text strong>Delegate</Typography.Text>
+                          <Tag>{getStepLabel(step)}</Tag>
+                        </Space>
+                        <Typography.Text className="muted">
+                          From {entry.fromGroup || '-'} → {entry.toGroup || '-'}
+                        </Typography.Text>
+                        <Typography.Text className="muted">
+                          By {byLabel}
+                          {entry.at ? ` at ${formatTimestamp(entry.at)}` : ''}
+                        </Typography.Text>
+                        {entry.note ? (
+                          <Typography.Text className="muted">Note: {entry.note}</Typography.Text>
+                        ) : null}
+                      </Space>
+                    </div>
+                  );
+                }
 
-          const { entry } = event;
-          const byLabel = getRoleById(roles, entry.byRoleId)?.label || entry.byRoleId || '-';
-          return (
-            <div key={entry.id || `${entry.type}-${entry.at}`} className="timeline-item">
-              <Space direction="vertical" size={4} style={{ width: '100%' }}>
-                <Space>
-                  <Typography.Text strong>{entry.message || 'Activity'}</Typography.Text>
-                  <Tag>Log</Tag>
-                </Space>
-                <Typography.Text className="muted">
-                  By {byLabel}
-                  {entry.at ? ` at ${formatTimestamp(entry.at)}` : ''}
-                </Typography.Text>
-              </Space>
-            </div>
-          );
-        })}
-      </Space>
+                const { entry } = event;
+                return (
+                  <div
+                    key={entry.id || `${entry.type || 'view'}-${entry.at || event.order}`}
+                    className="timeline-item"
+                  >
+                    <Space direction="vertical" size={4} style={{ width: '100%' }}>
+                      <Space>
+                        <Typography.Text strong>View</Typography.Text>
+                        <Tag>Log</Tag>
+                      </Space>
+                      {entry.message ? (
+                        <Typography.Text className="muted">{entry.message}</Typography.Text>
+                      ) : null}
+                      {entry.at ? (
+                        <Typography.Text className="muted">
+                          {formatTimestamp(entry.at)}
+                        </Typography.Text>
+                      ) : null}
+                    </Space>
+                  </div>
+                );
+              })}
+            </Space>
+          )}
+        </TabPane>
+        <TabPane key="edits" title="Edit Log">
+          {editEvents.length === 0 ? (
+            <Typography.Text className="muted">No edits yet.</Typography.Text>
+          ) : (
+            <Space direction="vertical" size={12} style={{ width: '100%' }}>
+              {editEvents.map(({ entry }) => {
+                const byLabel =
+                  getRoleById(roles, entry.byRoleId)?.label || entry.byRoleId || '-';
+                const stepLabel = entry.stepId
+                  ? stepIndexMap.has(entry.stepId)
+                    ? getStepLabel(steps[stepIndexMap.get(entry.stepId)])
+                    : entry.stepLabel || 'Step'
+                  : entry.stepLabel || 'Draft';
+                return (
+                  <div key={entry.id || `${entry.fieldKey}-${entry.at}`} className="timeline-item">
+                    <Space direction="vertical" size={4} style={{ width: '100%' }}>
+                      <Typography.Text strong>
+                        {entry.fieldLabel || entry.fieldKey || 'Field'} updated
+                      </Typography.Text>
+                      <Typography.Text className="muted">Step: {stepLabel}</Typography.Text>
+                      <Typography.Text className="muted">
+                        By {byLabel}
+                        {entry.at ? ` at ${formatTimestamp(entry.at)}` : ''}
+                      </Typography.Text>
+                      <Typography.Text className="muted">
+                        {formatValue(entry.from)} → {formatValue(entry.to)}
+                      </Typography.Text>
+                    </Space>
+                  </div>
+                );
+              })}
+            </Space>
+          )}
+        </TabPane>
+      </Tabs>
     </Card>
   );
 }

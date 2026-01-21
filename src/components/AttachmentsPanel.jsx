@@ -14,12 +14,18 @@ import {
 } from '@arco-design/web-react';
 
 export default function AttachmentsPanel({
+  title = 'Attachments',
+  description = '',
+  showAdd = true,
+  showDownload = true,
+  addLabel = 'Add Attachment',
+  downloadLabel = 'Download Selected',
   attachments,
   onAdd,
   onDelete,
   onStatusChange,
-  statusRequired,
-  statusOptions,
+  statusRequired = false,
+  statusOptions = [],
   fileLibrary = [],
   viewOptions = [],
   activeViewId = 'draft',
@@ -81,8 +87,8 @@ export default function AttachmentsPanel({
             key: node.key,
             name: fileName,
             type: node.file?.type || fallbackType,
-            revision: node.file?.revision || 'A',
-            remark: node.file?.remark || '',
+            version: node.file?.version || 'A',
+            size: node.file?.size || '',
             path: nextPath.join(' / '),
           });
         }
@@ -120,8 +126,8 @@ export default function AttachmentsPanel({
       onAdd({
         name: file.name,
         type: file.type,
-        revision: file.revision,
-        remark: file.remark,
+        version: file.version,
+        size: file.size,
       });
     });
     setSelectedFileKeys([]);
@@ -134,7 +140,11 @@ export default function AttachmentsPanel({
       return;
     }
     const content = selectedAttachments
-      .map((attachment) => `${attachment.name} (${attachment.type}) Rev ${attachment.revision}`)
+      .map((attachment) => {
+        const version = attachment.version ? `Version ${attachment.version}` : 'Version -';
+        const size = attachment.size ? `Size ${attachment.size}` : 'Size -';
+        return `${attachment.name} (${attachment.type}) ${version}, ${size}`;
+      })
       .join('\\n');
     const blob = new Blob([content], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
@@ -156,12 +166,12 @@ export default function AttachmentsPanel({
       dataIndex: 'type',
     },
     {
-      title: 'Rev',
-      dataIndex: 'revision',
+      title: 'Size',
+      render: (_, record) => record.size || '—',
     },
     {
-      title: 'Remark',
-      dataIndex: 'remark',
+      title: 'Version',
+      render: (_, record) => record.version || '—',
     },
     {
       title: 'Status',
@@ -198,23 +208,30 @@ export default function AttachmentsPanel({
     });
   }
 
+  const actions = showDownload || showAdd
+    ? (
+      <Space>
+        {showDownload ? (
+          <Button size="small" disabled={selectedRowKeys.length === 0} onClick={handleDownload}>
+            {downloadLabel}
+          </Button>
+        ) : null}
+        {showAdd ? (
+          <Button size="small" disabled={!canEdit} onClick={handleAddClick}>
+            {addLabel}
+          </Button>
+        ) : null}
+      </Space>
+      )
+    : null;
+
   return (
-    <Card className="panel-card" bordered={false}>
+    <Card className="panel-card" bordered={false} title={title} extra={actions}>
       <Space direction="vertical" size={10} style={{ width: '100%' }}>
-        <Space style={{ width: '100%', justifyContent: 'space-between' }}>
-          <Typography.Text>Attachments</Typography.Text>
-          <Space>
-            <Button size="small" disabled={selectedRowKeys.length === 0} onClick={handleDownload}>
-              Download Selected
-            </Button>
-            <Button size="small" disabled={!canEdit} onClick={handleAddClick}>
-              Add Attachment
-            </Button>
-          </Space>
-        </Space>
+        {description ? <Typography.Text className="muted">{description}</Typography.Text> : null}
         {viewOptions.length > 1 && onViewChange ? (
           <Space size={6}>
-            <Typography.Text className="muted">Round</Typography.Text>
+            <Typography.Text className="muted">Step</Typography.Text>
             <Select
               size="mini"
               value={activeViewId}
@@ -228,10 +245,10 @@ export default function AttachmentsPanel({
           data={attachments}
           rowKey="id"
           pagination={false}
-          rowSelection={{
+          rowSelection={showDownload ? {
             selectedRowKeys,
             onChange: (keys) => setSelectedRowKeys(keys),
-          }}
+          } : undefined}
         />
       </Space>
       <Modal
@@ -296,11 +313,9 @@ export default function AttachmentsPanel({
                     </Typography.Text>
                     <Space size={8}>
                       <Tag>{file.type}</Tag>
-                      <Tag>Rev {file.revision}</Tag>
+                      {file.version ? <Tag>Version {file.version}</Tag> : null}
+                      {file.size ? <Tag>{file.size}</Tag> : null}
                     </Space>
-                    {file.remark ? (
-                      <Typography.Text className="muted">{file.remark}</Typography.Text>
-                    ) : null}
                   </Space>
                 ))}
               </Space>

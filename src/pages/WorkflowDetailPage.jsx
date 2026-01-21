@@ -37,7 +37,7 @@ export default function WorkflowDetailPage() {
   const [selectedActionId, setSelectedActionId] = useState('');
   const [selectedToGroup, setSelectedToGroup] = useState('');
   const [message, setMessage] = useState('');
-  const [attachmentViewId, setAttachmentViewId] = useState('draft');
+  const [historyStepId, setHistoryStepId] = useState('');
   const [delegateGroup, setDelegateGroup] = useState('');
   const [delegateNote, setDelegateNote] = useState('');
   const [draftFormData, setDraftFormData] = useState(() => instance?.formData || {});
@@ -47,7 +47,7 @@ export default function WorkflowDetailPage() {
     setSelectedActionId('');
     setSelectedToGroup('');
     setMessage('');
-    setAttachmentViewId('draft');
+    setHistoryStepId('');
     setDelegateGroup('');
     setDelegateNote('');
   }, [instanceId]);
@@ -117,23 +117,45 @@ export default function WorkflowDetailPage() {
     });
     return map;
   }, [instance]);
-  const attachmentViewOptions = useMemo(() => {
-    if (!instance) {
+  const latestStepIndex = useMemo(() => {
+    if (!instance?.steps || !latestStep) {
+      return -1;
+    }
+    return instance.steps.findIndex((step) => step.id === latestStep.id);
+  }, [instance, latestStep]);
+  const latestStepLabel =
+    latestStep && latestStepIndex >= 0
+      ? `Step ${latestStepIndex + 1} - ${latestStep.actionLabel} - Sent ${latestStep.sentAt}`
+      : '';
+  const incomingAttachments = useMemo(() => {
+    if (!latestStep) {
       return [];
     }
-    const options = [];
-    if (canEditAttachments || draftAttachments.length > 0 || instance.steps.length === 0) {
-      options.push({ value: 'draft', label: 'Draft (Unsent)' });
+    return attachmentsByStep.get(latestStep.id) || [];
+  }, [attachmentsByStep, latestStep]);
+  const historyStepOptions = useMemo(() => {
+    if (!instance?.steps || instance.steps.length === 0) {
+      return [];
     }
-    const stepOptions = instance.steps
-      .map((step, index) => ({
+    return instance.steps
+      .map((step, index) => ({ step, index }))
+      .filter(({ step }) => step.id !== latestStep?.id)
+      .map(({ step, index }) => ({
         value: step.id,
         label: `Step ${index + 1} - ${step.actionLabel} - Sent ${step.sentAt}`,
       }))
       .reverse();
-    return [...options, ...stepOptions];
-  }, [instance, canEditAttachments, draftAttachments.length]);
-
+  }, [instance, latestStep]);
+  const historyStepLabel = useMemo(() => {
+    const match = historyStepOptions.find((option) => option.value === historyStepId);
+    return match ? match.label : '';
+  }, [historyStepId, historyStepOptions]);
+  const historyAttachments = useMemo(() => {
+    if (!historyStepId) {
+      return [];
+    }
+    return attachmentsByStep.get(historyStepId) || [];
+  }, [attachmentsByStep, historyStepId]);
   useEffect(() => {
     if (selectedAction) {
       setSelectedToGroup(selectedAction.toCandidateGroups[0] || '');
@@ -148,13 +170,21 @@ export default function WorkflowDetailPage() {
   }, [selectedActionId, selectedAction]);
 
   useEffect(() => {
-    if (!instance || !inInbox) {
+    if (!instance || !latestStep) {
       return;
     }
-    if (instance.status === 'Sent' && latestStep && !latestStep.openedAt) {
-      actions.markOpened(instance.id);
+    const currentRole = getRoleById(state.roles, state.currentRoleId);
+    if (!currentRole) {
+      return;
     }
-  }, [actions, inInbox, instance, latestStep]);
+    if (latestStep.toGroup !== getRoleGroup(currentRole)) {
+      return;
+    }
+    if (instance.status === 'Closed' || latestStep.openedAt) {
+      return;
+    }
+    actions.markOpened(instance.id);
+  }, [actions, instance, latestStep, state.currentRoleId, state.roles]);
 
   const allowDelegate = Boolean(latestStep?.allowDelegate ?? latestAction?.allowDelegate);
   const delegateOptions = useMemo(() => {
@@ -185,29 +215,6 @@ export default function WorkflowDetailPage() {
     }
   }, [delegateOptions, delegateGroup, showDelegatePanel]);
 
-  const defaultAttachmentViewId = useMemo(() => {
-    if (!instance) {
-      return 'draft';
-    }
-    if (instance.steps.length === 0) {
-      return 'draft';
-    }
-    if (inInbox && latestStep?.requiresAttachmentStatus) {
-      return latestStep.id;
-    }
-    if (draftAttachments.length > 0 && canEditAttachments) {
-      return 'draft';
-    }
-    return latestStep?.id || 'draft';
-  }, [instance, inInbox, latestStep, draftAttachments.length, canEditAttachments]);
-
-  useEffect(() => {
-    if (!instance) {
-      return;
-    }
-    setAttachmentViewId(defaultAttachmentViewId);
-  }, [instanceId]);
-
   useEffect(() => {
     if (!instance) {
       return;
@@ -215,16 +222,15 @@ export default function WorkflowDetailPage() {
     setDraftFormData(instance.formData || {});
     setDirtyKeys([]);
   }, [instanceId, instance?.formData]);
-
   useEffect(() => {
-    if (!instance) {
+    if (historyStepOptions.length === 0) {
+      setHistoryStepId('');
       return;
     }
-    const availableViews = new Set(attachmentViewOptions.map((option) => option.value));
-    if (!availableViews.has(attachmentViewId)) {
-      setAttachmentViewId(defaultAttachmentViewId);
+    if (!historyStepId || !historyStepOptions.some((option) => option.value === historyStepId)) {
+      setHistoryStepId(historyStepOptions[0].value);
     }
-  }, [attachmentViewId, attachmentViewOptions, defaultAttachmentViewId, instance]);
+  }, [historyStepId, historyStepOptions]);
 
   const savedFormData = instance?.formData || {};
   const formData = canEditForm ? draftFormData : savedFormData;
@@ -255,22 +261,19 @@ export default function WorkflowDetailPage() {
     return <Typography.Text>Access denied.</Typography.Text>;
   }
 
-  const isDraftView = attachmentViewId === 'draft';
-  const attachmentsForView = isDraftView
-    ? draftAttachments
-    : attachmentsByStep.get(attachmentViewId) || [];
-  const stepForView = isDraftView
-    ? null
-    : instance.steps.find((step) => step.id === attachmentViewId);
-  const isLatestStepView = Boolean(stepForView && latestStep?.id === stepForView.id);
-  const statusOptionsForView =
+  const statusOptionsForIncoming =
+    latestAction?.statusSet && latestAction.statusSet.length > 0
+      ? latestAction.statusSet
+      : ['Approved', 'Rejected', 'AIP', 'For Info'];
+  const statusOptionsForCurrent =
     statusAction?.statusSet && statusAction.statusSet.length > 0
       ? statusAction.statusSet
       : ['Approved', 'Rejected', 'AIP', 'For Info'];
-  const statusRequiredForView =
-    canEditAttachments &&
-    Boolean(statusAction?.requiresAttachmentStatus) &&
-    (isLatestStepView || (isDraftView && instance.steps.length === 0));
+  const statusRequiredForIncoming =
+    canEditAttachments && Boolean(latestStep?.requiresAttachmentStatus) && inInbox;
+  const statusRequiredForCurrent =
+    canEditAttachments && Boolean(statusAction?.requiresAttachmentStatus) && !inInbox;
+  const showCurrentAttachments = instance?.status !== 'Closed';
   const isFormDirty = dirtyKeys.length > 0;
   const formValid = !canEditForm || Object.keys(formErrors).length === 0;
   const canTakeAction = instance.status !== 'Closed' && (inInbox || isDraft);
@@ -409,21 +412,56 @@ export default function WorkflowDetailPage() {
             </Space>
           )}
         </Space>
-        <AttachmentsPanel
-          attachments={attachmentsForView}
-          onAdd={(attachment) => actions.addAttachment(instance.id, attachment)}
-          onDelete={(attachmentId) => actions.removeAttachment(instance.id, attachmentId)}
-          onStatusChange={(attachmentId, status) =>
-            actions.updateAttachmentStatus(instance.id, attachmentId, status)
-          }
-          statusRequired={statusRequiredForView}
-          statusOptions={statusOptionsForView}
-          fileLibrary={state.fileLibrary}
-          viewOptions={attachmentViewOptions}
-          activeViewId={attachmentViewId}
-          onViewChange={setAttachmentViewId}
-          canEdit={canEditAttachments}
-        />
+        <Space direction="vertical" size={12} style={{ width: '100%' }}>
+          <AttachmentsPanel
+            title="Incoming Attachments"
+            description={
+              latestStepLabel
+                ? `From ${latestStepLabel}. Set status when required.`
+                : 'From the previous step. Set status when required.'
+            }
+            attachments={incomingAttachments}
+            onStatusChange={(attachmentId, status) =>
+              actions.updateAttachmentStatus(instance.id, attachmentId, status)
+            }
+            statusRequired={statusRequiredForIncoming}
+            statusOptions={statusOptionsForIncoming}
+            showAdd={false}
+            activeViewId="incoming"
+            canEdit={Boolean(statusRequiredForIncoming)}
+          />
+          {showCurrentAttachments ? (
+            <AttachmentsPanel
+              title="Current Attachments"
+              description="Add files to send with your next action."
+              attachments={draftAttachments}
+              onAdd={(attachment) => actions.addAttachment(instance.id, attachment)}
+              onDelete={(attachmentId) => actions.removeAttachment(instance.id, attachmentId)}
+              onStatusChange={(attachmentId, status) =>
+                actions.updateAttachmentStatus(instance.id, attachmentId, status)
+              }
+              statusRequired={statusRequiredForCurrent}
+              statusOptions={statusOptionsForCurrent}
+              fileLibrary={state.fileLibrary}
+              activeViewId="draft"
+              canEdit={canEditAttachments}
+            />
+          ) : null}
+          <AttachmentsPanel
+            title="Attachment History"
+            description={
+              historyStepLabel
+                ? `Read-only record for ${historyStepLabel}.`
+                : 'Read-only record from earlier steps.'
+            }
+            attachments={historyAttachments}
+            showAdd={false}
+            viewOptions={historyStepOptions}
+            activeViewId={historyStepId}
+            onViewChange={setHistoryStepId}
+            canEdit={false}
+          />
+        </Space>
         <Space direction="vertical" size={16} style={{ width: '100%' }}>
           {showDelegatePanel && (
             <DelegatePanel

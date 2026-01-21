@@ -4,8 +4,8 @@ import { useAppContext } from '../../store/AppContext.jsx';
 import { getPublishIssues } from '../../utils/workflow.js';
 
 export default function PublishTab({ template }) {
-  const { actions } = useAppContext();
-  const issues = getPublishIssues(template);
+  const { state, actions } = useAppContext();
+  const issues = getPublishIssues(template, state.roles);
   const canPublish = issues.length === 0;
 
   return (

@@ -4,7 +4,7 @@ import {
   addDays,
   buildDefaultFormData,
   buildDefaultCommonData,
-  bumpRevision,
+  bumpVersion,
   getAvailableActionsForInstance,
   getLatestSentStep,
   getNextTransmittalNo,
@@ -144,6 +144,15 @@ export function AppProvider({ children }) {
             const shouldLog = !isEmptyLogValue(previousValue) && !isEmptyLogValue(value);
             const nextHistory = shouldLog
               ? (() => {
+                  const stepContext =
+                    instance.steps && instance.steps.length > 0 ? getLatestSentStep(instance) : null;
+                  const stepIndex = stepContext
+                    ? instance.steps.findIndex((step) => step.id === stepContext.id)
+                    : -1;
+                  const stepLabel =
+                    stepContext && stepIndex >= 0
+                      ? `Step ${stepIndex + 1} - ${stepContext.actionLabel}`
+                      : 'Draft';
                   const template = getTemplateById(prev.templates, instance.templateId);
                   const commonField = (prev.commonFields || []).find((field) => field.key === key);
                   const schemaField = template?.schema?.find((field) => field.key === key);
@@ -157,6 +166,8 @@ export function AppProvider({ children }) {
                       from: previousValue,
                       to: value,
                       byRoleId: prev.currentRoleId,
+                      stepId: stepContext?.id || '',
+                      stepLabel,
                       at: new Date().toISOString(),
                     },
                   ];
@@ -182,6 +193,15 @@ export function AppProvider({ children }) {
             const savedAt = new Date().toISOString();
             let changeCount = 0;
             const nextHistory = [...(instance.formHistory || [])];
+            const stepContext =
+              instance.steps && instance.steps.length > 0 ? getLatestSentStep(instance) : null;
+            const stepIndex = stepContext
+              ? instance.steps.findIndex((step) => step.id === stepContext.id)
+              : -1;
+            const stepLabel =
+              stepContext && stepIndex >= 0
+                ? `Step ${stepIndex + 1} - ${stepContext.actionLabel}`
+                : 'Draft';
 
             Object.entries(updates).forEach(([key, value]) => {
               if (Object.is(instance.formData[key], value)) {
@@ -203,6 +223,8 @@ export function AppProvider({ children }) {
                   from: previousValue,
                   to: value,
                   byRoleId: prev.currentRoleId,
+                  stepId: stepContext?.id || '',
+                  stepLabel,
                   at: savedAt,
                 });
               }
@@ -289,12 +311,19 @@ export function AppProvider({ children }) {
             if (!role || latest.toGroup !== getRoleGroup(role)) {
               return instance;
             }
+            const template = getTemplateById(prev.templates, instance.templateId);
+            const latestAction = template?.actions?.find((action) => action.id === latest.actionId);
+            const shouldClose = Boolean(latestAction?.closeInstance);
             const openedAt = todayISO();
             const logAt = new Date().toISOString();
             const nextSteps = instance.steps.map((step) =>
               step.id === latest.id ? { ...step, openedAt } : step
             );
-            const nextStatus = instance.status === 'Sent' ? 'Received' : instance.status;
+            const nextStatus = shouldClose
+              ? 'Closed'
+              : instance.status === 'Sent'
+                ? 'Received'
+                : instance.status;
             const roleLabel = role?.label || prev.currentRoleId;
             const nextLogEntry = {
               id: `log-${Date.now()}`,
@@ -346,7 +375,7 @@ export function AppProvider({ children }) {
               fromGroup: latest.toGroup,
               toGroup,
               byRoleId: prev.currentRoleId,
-              at: todayISO(),
+              at: new Date().toISOString(),
               note: note ? note.trim() : '',
             };
             const nextSteps = instance.steps.map((step) => {
@@ -407,7 +436,7 @@ export function AppProvider({ children }) {
             }
             const sentAt = todayISO();
             const dueDate = action.dueDays ? addDays(sentAt, action.dueDays) : '';
-            const shouldBumpRevision =
+            const shouldBumpVersion =
               action.id === 'csf-aip' || action.id === 'csf-not-approved';
             const draftAttachments = instance.attachments.filter((attachment) => !attachment.stepId);
             const statusSourceAttachments = action.requiresAttachmentStatus
@@ -442,21 +471,17 @@ export function AppProvider({ children }) {
             const sentAttachments = instance.attachments.map((attachment) =>
               attachment.stepId ? attachment : { ...attachment, stepId: newStepId }
             );
-            const bumpedDraftAttachments = shouldBumpRevision
+            const bumpedDraftAttachments = shouldBumpVersion
               ? draftAttachments.map((attachment, index) => ({
                   ...attachment,
                   id: `att-${timestamp}-${index}`,
-                  revision: bumpRevision(attachment.revision),
+                  version: bumpVersion(attachment.version),
                   status: '',
                   stepId: '',
                 }))
               : [];
             const nextAttachments = [...sentAttachments, ...bumpedDraftAttachments];
-            const nextStatus = action.closeInstance
-              ? instance.status === 'Received'
-                ? 'Closed'
-                : instance.status
-              : 'Sent';
+            const nextStatus = 'Sent';
             return {
               ...instance,
               status: nextStatus,
@@ -514,7 +539,7 @@ export function AppProvider({ children }) {
                 schema: [],
                 layout: { sections: [] },
                 actions: [],
-                actionFlowEnabled: false,
+                actionFlowEnabled: true,
               };
           return {
             ...prev,

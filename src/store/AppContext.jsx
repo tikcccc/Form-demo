@@ -350,12 +350,12 @@ export function AppProvider({ children }) {
             if (!action.allowedRoles.includes(prev.currentRoleId) && !isAdmin) {
               return instance;
             }
+            const latest = instance.steps?.length ? getLatestSentStep(instance) : null;
             if (!instance.steps || instance.steps.length === 0) {
               if (instance.createdBy !== prev.currentRoleId && !isAdmin) {
                 return instance;
               }
             } else {
-              const latest = getLatestSentStep(instance);
               if (!latest || !latest.lastStep) {
                 return instance;
               }
@@ -379,10 +379,15 @@ export function AppProvider({ children }) {
             const shouldBumpRevision =
               action.id === 'csf-aip' || action.id === 'csf-not-approved';
             const draftAttachments = instance.attachments.filter((attachment) => !attachment.stepId);
+            const statusSourceAttachments = action.requiresAttachmentStatus
+              ? latest
+                ? instance.attachments.filter((attachment) => attachment.stepId === latest.id)
+                : draftAttachments
+              : [];
             const timestamp = Date.now();
             const newStepId = `step-${timestamp}`;
             const attachmentStatuses = action.requiresAttachmentStatus
-              ? draftAttachments.map((attachment) => ({
+              ? statusSourceAttachments.map((attachment) => ({
                   id: attachment.id,
                   status: attachment.status,
                 }))

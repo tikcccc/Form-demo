@@ -63,7 +63,12 @@ export default function WorkflowDetailPage() {
     [commonFields]
   );
 
+  const actionContextId =
+    selectedActionId || (availableActions.length === 1 ? availableActions[0].id : '');
   const selectedAction = availableActions.find((action) => action.id === selectedActionId);
+  const statusAction = actionContextId
+    ? availableActions.find((action) => action.id === actionContextId)
+    : null;
   const latestStep = instance ? getLatestSentStep(instance) : null;
   const latestAction = useMemo(() => {
     if (!template || !latestStep) {
@@ -85,8 +90,6 @@ export default function WorkflowDetailPage() {
   const isDraft = instance ? instance.steps.length === 0 : false;
   const canEditForm = instance ? instance.status !== 'Closed' && (isDraft || inInbox) : false;
   const requireEditable = Boolean(instance && !isDraft);
-  const actionContextId =
-    selectedActionId || (availableActions.length === 1 ? availableActions[0].id : '');
   const canEditAttachments = instance
     ? instance.status !== 'Closed' &&
       (isProjectAdmin(state.currentRoleId) ||
@@ -258,20 +261,15 @@ export default function WorkflowDetailPage() {
   const stepForView = isDraftView
     ? null
     : instance.steps.find((step) => step.id === attachmentViewId);
-  const actionForView = stepForView
-    ? template?.actions?.find((action) => action.id === stepForView.actionId)
-    : selectedAction;
+  const isLatestStepView = Boolean(stepForView && latestStep?.id === stepForView.id);
   const statusOptionsForView =
-    actionForView?.statusSet && actionForView.statusSet.length > 0
-      ? actionForView.statusSet
+    statusAction?.statusSet && statusAction.statusSet.length > 0
+      ? statusAction.statusSet
       : ['Approved', 'Rejected', 'AIP', 'For Info'];
   const statusRequiredForView =
     canEditAttachments &&
-    ((isDraftView && Boolean(selectedAction?.requiresAttachmentStatus)) ||
-      (!isDraftView &&
-        Boolean(stepForView?.requiresAttachmentStatus) &&
-        inInbox &&
-        latestStep?.id === stepForView?.id));
+    Boolean(statusAction?.requiresAttachmentStatus) &&
+    (isLatestStepView || (isDraftView && instance.steps.length === 0));
   const isFormDirty = dirtyKeys.length > 0;
   const formValid = !canEditForm || Object.keys(formErrors).length === 0;
   const canTakeAction = instance.status !== 'Closed' && (inInbox || isDraft);

@@ -85,7 +85,44 @@ body {
   display: flex;
   gap: 12px;
   align-items: center;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+}
+
+.filter-main {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex: 1;
+  flex-wrap: nowrap;
+  min-width: 0;
+}
+
+.filter-main .arco-select {
+  width: 180px;
+  min-width: 160px;
+}
+
+.filter-toggle {
+  margin-left: auto;
+  white-space: nowrap;
+}
+
+@media (max-width: 900px) {
+  .filter-bar {
+    flex-wrap: wrap;
+  }
+
+  .filter-main {
+    flex-wrap: wrap;
+  }
+
+  .filter-main .arco-select {
+    width: 100%;
+  }
+
+  .filter-toggle {
+    margin-left: 0;
+  }
 }
 
 .table-actions {

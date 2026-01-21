@@ -109,7 +109,7 @@ export default function WorkflowsPage() {
           <Alert
             type="warning"
             showIcon
-            content="Data is stored in memory. Refreshing resets role groups (including custom), templates, and instances."
+            content="Data is stored in web memory. Refreshing resets role groups (including custom), templates, and instances."
           />
           <Tabs activeTab={activeTab} onChange={setActiveTab} type="rounded">
             <TabPane key="all" title="All" />
@@ -118,16 +118,22 @@ export default function WorkflowsPage() {
             <TabPane key="closed" title="Closed" />
           </Tabs>
           <div className="filter-bar">
-            <Input.Search
-              placeholder="Search transmittal or title"
-              value={search}
-              onChange={setSearch}
-              style={{ width: 240 }}
-              allowClear
-            />
-            <Select options={templateOptions} value={templateFilter} onChange={setTemplateFilter} />
-            <Select options={statusOptions} value={statusFilter} onChange={setStatusFilter} />
-            <Space>
+            <div className="filter-main">
+              <Input.Search
+                placeholder="Search transmittal or title"
+                value={search}
+                onChange={setSearch}
+                style={{ width: 240 }}
+                allowClear
+              />
+              <Select
+                options={templateOptions}
+                value={templateFilter}
+                onChange={setTemplateFilter}
+              />
+              <Select options={statusOptions} value={statusFilter} onChange={setStatusFilter} />
+            </div>
+            <Space className="filter-toggle">
               <Switch checked={overdueOnly} onChange={setOverdueOnly} />
               <Typography.Text className="muted">Overdue only</Typography.Text>
             </Space>

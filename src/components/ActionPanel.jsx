@@ -13,7 +13,6 @@ export default function ActionPanel({
   attachmentsReady,
   messageRequired = false,
   formValid = true,
-  formDirty = false,
   showFormErrors = false,
 }) {
   const selectedAction = actions.find((action) => action.id === selectedActionId);
@@ -27,7 +26,6 @@ export default function ActionPanel({
       selectedToGroup &&
       (!selectedAction.requiresAttachmentStatus || attachmentsReady) &&
       formValid &&
-      !formDirty &&
       !messageMissing
   );
 
@@ -67,9 +65,6 @@ export default function ActionPanel({
         )}
         {selectedAction && selectedAction.requiresAttachmentStatus && !attachmentsReady && (
           <Alert type="warning" content="Set status for all attachments before sending." />
-        )}
-        {formDirty && (
-          <Alert type="warning" content="Save the form before sending." />
         )}
         {!formValid && showFormErrors && (
           <Alert type="warning" content="Fix form validation errors before sending." />

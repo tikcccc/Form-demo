@@ -252,10 +252,8 @@ export default function WorkflowDetailPage() {
   const attachmentsForView = isDraftView
     ? draftAttachments
     : attachmentsByStep.get(attachmentViewId) || [];
-  const statusRequiredForView = canEditAttachments
-    ? (isDraftView && Boolean(selectedAction?.requiresAttachmentStatus)) ||
-      (inInbox && latestStep?.requiresAttachmentStatus && attachmentViewId === latestStep?.id)
-    : false;
+  const statusRequiredForView =
+    isDraftView && canEditAttachments && Boolean(selectedAction?.requiresAttachmentStatus);
   const isFormDirty = dirtyKeys.length > 0;
   const formValid = !canEditForm || Object.keys(formErrors).length === 0;
   const canTakeAction = instance.status !== 'Closed' && (inInbox || isDraft);
@@ -301,8 +299,11 @@ export default function WorkflowDetailPage() {
     if (replyRequired && !message.trim()) {
       return;
     }
-    if (canEditForm && (!formValid || isFormDirty)) {
+    if (canEditForm && !formValid) {
       return;
+    }
+    if (canEditForm && isFormDirty) {
+      actions.updateFormData(instance.id, draftFormData);
     }
     actions.sendAction({
       instanceId: instance.id,
@@ -366,17 +367,6 @@ export default function WorkflowDetailPage() {
       )}
       <div className="detail-grid">
         <Space direction="vertical" size={12} style={{ width: '100%' }}>
-          {canEditForm && (
-            <Space style={{ width: '100%', justifyContent: 'flex-end' }}>
-              <Button
-                type="primary"
-                onClick={handleFormSave}
-                disabled={!isFormDirty || Object.keys(formErrors).length > 0}
-              >
-                Save
-              </Button>
-            </Space>
-          )}
           <DynamicForm
             template={template}
             formData={formData}
@@ -390,6 +380,17 @@ export default function WorkflowDetailPage() {
             errors={formErrors}
             showValidation={canEditForm}
           />
+          {canEditForm && (
+            <Space style={{ width: '100%', justifyContent: 'flex-end' }}>
+              <Button
+                type="primary"
+                onClick={handleFormSave}
+                disabled={!isFormDirty || Object.keys(formErrors).length > 0}
+              >
+                Save
+              </Button>
+            </Space>
+          )}
         </Space>
         <AttachmentsPanel
           attachments={attachmentsForView}
@@ -432,7 +433,6 @@ export default function WorkflowDetailPage() {
               attachmentsReady={attachmentsReady}
               messageRequired={replyRequired}
               formValid={formValid}
-              formDirty={isFormDirty}
               showFormErrors={canEditForm}
             />
           )}

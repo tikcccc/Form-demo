@@ -16,6 +16,9 @@ import {
 
 const AppContext = createContext(null);
 
+const isEmptyLogValue = (value) =>
+  value === undefined || value === null || value === '' || Number.isNaN(value);
+
 export function AppProvider({ children }) {
   const [state, setState] = useState(initialState);
 
@@ -106,23 +109,28 @@ export function AppProvider({ children }) {
             if (Object.is(previousValue, value)) {
               return instance;
             }
-            const template = getTemplateById(prev.templates, instance.templateId);
-            const commonField = (prev.commonFields || []).find((field) => field.key === key);
-            const schemaField = template?.schema?.find((field) => field.key === key);
-            const fieldLabel = commonField?.label || schemaField?.label || key;
             const nextFormData = { ...instance.formData, [key]: value };
-            const nextHistory = [
-              ...(instance.formHistory || []),
-              {
-                id: `fh-${Date.now()}`,
-                fieldKey: key,
-                fieldLabel,
-                from: previousValue,
-                to: value,
-                byRoleId: prev.currentRoleId,
-                at: new Date().toISOString(),
-              },
-            ];
+            const shouldLog = !isEmptyLogValue(previousValue) && !isEmptyLogValue(value);
+            const nextHistory = shouldLog
+              ? (() => {
+                  const template = getTemplateById(prev.templates, instance.templateId);
+                  const commonField = (prev.commonFields || []).find((field) => field.key === key);
+                  const schemaField = template?.schema?.find((field) => field.key === key);
+                  const fieldLabel = commonField?.label || schemaField?.label || key;
+                  return [
+                    ...(instance.formHistory || []),
+                    {
+                      id: `fh-${Date.now()}`,
+                      fieldKey: key,
+                      fieldLabel,
+                      from: previousValue,
+                      to: value,
+                      byRoleId: prev.currentRoleId,
+                      at: new Date().toISOString(),
+                    },
+                  ];
+                })()
+              : instance.formHistory || [];
             return {
               ...instance,
               formData: nextFormData,
@@ -139,8 +147,6 @@ export function AppProvider({ children }) {
             if (instance.id !== instanceId) {
               return instance;
             }
-            const template = getTemplateById(prev.templates, instance.templateId);
-            const commonFields = prev.commonFields || [];
             const nextFormData = { ...instance.formData };
             const savedAt = new Date().toISOString();
             let changeCount = 0;
@@ -151,18 +157,24 @@ export function AppProvider({ children }) {
                 return;
               }
               nextFormData[key] = value;
-              const commonField = commonFields.find((field) => field.key === key);
-              const schemaField = template?.schema?.find((field) => field.key === key);
-              const fieldLabel = commonField?.label || schemaField?.label || key;
-              nextHistory.push({
-                id: `fh-${Date.now()}-${changeCount}`,
-                fieldKey: key,
-                fieldLabel,
-                from: instance.formData[key],
-                to: value,
-                byRoleId: prev.currentRoleId,
-                at: savedAt,
-              });
+              const previousValue = instance.formData[key];
+              const shouldLog = !isEmptyLogValue(previousValue) && !isEmptyLogValue(value);
+              if (shouldLog) {
+                const template = getTemplateById(prev.templates, instance.templateId);
+                const commonFields = prev.commonFields || [];
+                const commonField = commonFields.find((field) => field.key === key);
+                const schemaField = template?.schema?.find((field) => field.key === key);
+                const fieldLabel = commonField?.label || schemaField?.label || key;
+                nextHistory.push({
+                  id: `fh-${Date.now()}-${changeCount}`,
+                  fieldKey: key,
+                  fieldLabel,
+                  from: previousValue,
+                  to: value,
+                  byRoleId: prev.currentRoleId,
+                  at: savedAt,
+                });
+              }
               changeCount += 1;
             });
 

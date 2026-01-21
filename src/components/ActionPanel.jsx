@@ -11,6 +11,7 @@ export default function ActionPanel({
   onMessageChange,
   onSend,
   attachmentsReady,
+  statusRequired = false,
   messageRequired = false,
   formValid = true,
   showFormErrors = false,
@@ -24,7 +25,7 @@ export default function ActionPanel({
   const canSend = Boolean(
     selectedAction &&
       selectedToGroup &&
-      (!selectedAction.requiresAttachmentStatus || attachmentsReady) &&
+      (!statusRequired || attachmentsReady) &&
       formValid &&
       !messageMissing
   );
@@ -63,8 +64,8 @@ export default function ActionPanel({
         {selectedAction && messageMissing && (
           <Alert type="warning" content="Reply message is required." />
         )}
-        {selectedAction && selectedAction.requiresAttachmentStatus && !attachmentsReady && (
-          <Alert type="warning" content="Set status for all attachments before sending." />
+        {selectedAction && statusRequired && !attachmentsReady && (
+          <Alert type="warning" content="Set status for all incoming attachments before sending." />
         )}
         {!formValid && showFormErrors && (
           <Alert type="warning" content="Fix form validation errors before sending." />

@@ -77,6 +77,14 @@ export default function WorkflowDetailPage() {
     () => getRecipientGroupsForStep(latestStep),
     [latestStep]
   );
+  const currentRole = useMemo(
+    () => getRoleById(state.roles, state.currentRoleId),
+    [state.roles, state.currentRoleId]
+  );
+  const currentRoleGroup = currentRole ? getRoleGroup(currentRole) : '';
+  const isRecipient = Boolean(
+    currentRoleGroup && latestRecipientGroups.includes(currentRoleGroup)
+  );
   const latestViewLogged = useMemo(() => {
     if (!instance || !latestStep) {
       return false;
@@ -101,12 +109,10 @@ export default function WorkflowDetailPage() {
     ? isUnread(instance, state.currentRoleId, state.roles)
     : false;
   const replyRequired = Boolean(inInbox);
-  const statusTargetStepId = instance && inInbox && latestStep ? latestStep.id : null;
-  const attachmentsReady = instance
-    ? areAttachmentStatusesComplete(instance, statusTargetStepId)
-    : true;
   const isDraft = instance ? instance.steps.length === 0 : false;
-  const initiatorLocked = Boolean(template && isDraft && isInitiatorRole(template, state.currentRoleId));
+  const initiatorLocked = Boolean(
+    template && isDraft && isInitiatorRole(template, state.currentRoleId)
+  );
   const canEditForm = instance
     ? instance.status !== 'Closed' && (isDraft || inInbox) && !initiatorLocked
     : false;
@@ -176,6 +182,22 @@ export default function WorkflowDetailPage() {
     }
     return attachmentsByStep.get(historyStepId) || [];
   }, [attachmentsByStep, historyStepId]);
+  const incomingRequiresStatus = Boolean(
+    latestStep
+      ? latestStep.requiresAttachmentStatus ?? latestAction?.requiresAttachmentStatus
+      : false
+  );
+  const statusRequiredForIncoming = Boolean(
+    instance &&
+      instance.status !== 'Closed' &&
+      isRecipient &&
+      incomingRequiresStatus &&
+      incomingAttachments.length > 0
+  );
+  const attachmentsReady =
+    statusRequiredForIncoming && instance
+      ? areAttachmentStatusesComplete(instance, latestStep?.id || null)
+      : true;
   useEffect(() => {
     if (selectedAction) {
       setSelectedToGroup(selectedAction.toCandidateGroups[0] || '');
@@ -193,12 +215,7 @@ export default function WorkflowDetailPage() {
     if (!instance || !latestStep) {
       return;
     }
-    const currentRole = getRoleById(state.roles, state.currentRoleId);
-    if (!currentRole) {
-      return;
-    }
-    const roleGroup = getRoleGroup(currentRole);
-    if (!roleGroup || !latestRecipientGroups.includes(roleGroup)) {
+    if (!isRecipient) {
       return;
     }
     if (instance.status === 'Closed') {
@@ -208,15 +225,7 @@ export default function WorkflowDetailPage() {
       return;
     }
     actions.markOpened(instance.id);
-  }, [
-    actions,
-    instance,
-    latestRecipientGroups,
-    latestStep,
-    latestViewLogged,
-    state.currentRoleId,
-    state.roles,
-  ]);
+  }, [actions, instance, isRecipient, latestStep, latestViewLogged]);
 
   const allowDelegate = Boolean(latestStep?.allowDelegate ?? latestAction?.allowDelegate);
   const delegateOptions = useMemo(() => {
@@ -301,8 +310,6 @@ export default function WorkflowDetailPage() {
     statusAction?.statusSet && statusAction.statusSet.length > 0
       ? statusAction.statusSet
       : ['Approved', 'Rejected', 'AIP', 'For Info'];
-  const statusRequiredForIncoming =
-    canEditAttachments && Boolean(latestStep?.requiresAttachmentStatus) && inInbox;
   const statusRequiredForCurrent =
     canEditAttachments && Boolean(statusAction?.requiresAttachmentStatus) && !inInbox;
   const showCurrentAttachments = instance?.status !== 'Closed';
@@ -345,7 +352,7 @@ export default function WorkflowDetailPage() {
     if (!selectedAction || !selectedToGroup) {
       return;
     }
-    if (selectedAction.requiresAttachmentStatus && !attachmentsReady) {
+    if (statusRequiredForIncoming && !attachmentsReady) {
       return;
     }
     if (replyRequired && !message.trim()) {
@@ -513,20 +520,21 @@ export default function WorkflowDetailPage() {
             />
           )}
           {canTakeAction && (
-            <ActionPanel
-              actions={availableActions}
-              selectedActionId={selectedActionId}
-              onSelectAction={setSelectedActionId}
-              selectedToGroup={selectedToGroup}
-              onSelectToGroup={setSelectedToGroup}
-              message={message}
-              onMessageChange={setMessage}
-              onSend={handleSend}
-              attachmentsReady={attachmentsReady}
-              messageRequired={replyRequired}
-              formValid={formValid}
-              showFormErrors={canEditForm}
-            />
+          <ActionPanel
+            actions={availableActions}
+            selectedActionId={selectedActionId}
+            onSelectAction={setSelectedActionId}
+            selectedToGroup={selectedToGroup}
+            onSelectToGroup={setSelectedToGroup}
+            message={message}
+            onMessageChange={setMessage}
+            onSend={handleSend}
+            attachmentsReady={attachmentsReady}
+            statusRequired={statusRequiredForIncoming}
+            messageRequired={replyRequired}
+            formValid={formValid}
+            showFormErrors={canEditForm}
+          />
           )}
           <TimelinePanel instance={instance} roles={state.roles} />
         </Space>

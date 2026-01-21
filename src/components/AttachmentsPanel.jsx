@@ -165,7 +165,7 @@ export default function AttachmentsPanel({
     {
       title: 'Status',
       render: (_, record) => {
-        if (!statusRequired || !canEditDraft) {
+        if (!statusRequired || !canEdit) {
           return record.status ? <Tag color="green">{record.status}</Tag> : '—';
         }
         return (

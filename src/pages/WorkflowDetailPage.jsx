@@ -252,8 +252,10 @@ export default function WorkflowDetailPage() {
   const attachmentsForView = isDraftView
     ? draftAttachments
     : attachmentsByStep.get(attachmentViewId) || [];
-  const statusRequiredForView =
-    isDraftView && canEditAttachments && Boolean(selectedAction?.requiresAttachmentStatus);
+  const statusRequiredForView = canEditAttachments
+    ? (isDraftView && Boolean(selectedAction?.requiresAttachmentStatus)) ||
+      (inInbox && latestStep?.requiresAttachmentStatus && attachmentViewId === latestStep?.id)
+    : false;
   const isFormDirty = dirtyKeys.length > 0;
   const formValid = !canEditForm || Object.keys(formErrors).length === 0;
   const canTakeAction = instance.status !== 'Closed' && (inInbox || isDraft);

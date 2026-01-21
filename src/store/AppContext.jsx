@@ -305,7 +305,7 @@ export function AppProvider({ children }) {
               return instance;
             }
             const latest = getLatestSentStep(instance);
-            if (!latest || latest.openedAt) {
+            if (!latest) {
               return instance;
             }
             const role = getRoleById(prev.roles, prev.currentRoleId);
@@ -316,28 +316,48 @@ export function AppProvider({ children }) {
             if (!roleGroup || !getRecipientGroupsForStep(latest).includes(roleGroup)) {
               return instance;
             }
+            const existingLogs = instance.activityLog || [];
+            const hasViewLog = existingLogs.some(
+              (entry) =>
+                entry.type === 'view' &&
+                entry.byRoleId === prev.currentRoleId &&
+                entry.stepId === latest.id
+            );
+            const shouldSetOpenedAt = !latest.openedAt;
+            if (!shouldSetOpenedAt && hasViewLog) {
+              return instance;
+            }
             const template = getTemplateById(prev.templates, instance.templateId);
             const latestAction = template?.actions?.find((action) => action.id === latest.actionId);
             const shouldClose = Boolean(latestAction?.closeInstance);
             const openedAt = todayISO();
             const logAt = new Date().toISOString();
-            const nextSteps = instance.steps.map((step) =>
-              step.id === latest.id ? { ...step, openedAt } : step
-            );
-            const nextStatus = shouldClose
-              ? 'Closed'
-              : instance.status === 'Sent'
-                ? 'Received'
-                : instance.status;
+            const nextSteps = shouldSetOpenedAt
+              ? instance.steps.map((step) =>
+                  step.id === latest.id ? { ...step, openedAt } : step
+                )
+              : instance.steps;
+            const nextStatus = shouldSetOpenedAt
+              ? shouldClose
+                ? 'Closed'
+                : instance.status === 'Sent'
+                  ? 'Received'
+                  : instance.status
+              : instance.status;
             const roleLabel = role?.label || prev.currentRoleId;
-            const nextLogEntry = {
-              id: `log-${Date.now()}`,
-              type: 'view',
-              message: `${roleLabel} viewed the details.`,
-              byRoleId: prev.currentRoleId,
-              at: logAt,
-            };
-            const nextActivityLog = [...(instance.activityLog || []), nextLogEntry];
+            const nextActivityLog = hasViewLog
+              ? existingLogs
+              : [
+                  ...existingLogs,
+                  {
+                    id: `log-${Date.now()}`,
+                    type: 'view',
+                    message: `${roleLabel} viewed the details.`,
+                    byRoleId: prev.currentRoleId,
+                    at: logAt,
+                    stepId: latest.id,
+                  },
+                ];
             return { ...instance, steps: nextSteps, status: nextStatus, activityLog: nextActivityLog };
           }),
         }));

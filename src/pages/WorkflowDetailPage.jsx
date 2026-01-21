@@ -76,6 +76,17 @@ export default function WorkflowDetailPage() {
     () => getRecipientGroupsForStep(latestStep),
     [latestStep]
   );
+  const latestViewLogged = useMemo(() => {
+    if (!instance || !latestStep) {
+      return false;
+    }
+    return (instance.activityLog || []).some(
+      (entry) =>
+        entry.type === 'view' &&
+        entry.byRoleId === state.currentRoleId &&
+        entry.stepId === latestStep.id
+    );
+  }, [instance, latestStep, state.currentRoleId]);
   const latestAction = useMemo(() => {
     if (!template || !latestStep) {
       return null;
@@ -186,11 +197,22 @@ export default function WorkflowDetailPage() {
     if (!roleGroup || !latestRecipientGroups.includes(roleGroup)) {
       return;
     }
-    if (instance.status === 'Closed' || latestStep.openedAt) {
+    if (instance.status === 'Closed') {
+      return;
+    }
+    if (latestStep.openedAt && latestViewLogged) {
       return;
     }
     actions.markOpened(instance.id);
-  }, [actions, instance, latestRecipientGroups, latestStep, state.currentRoleId, state.roles]);
+  }, [
+    actions,
+    instance,
+    latestRecipientGroups,
+    latestStep,
+    latestViewLogged,
+    state.currentRoleId,
+    state.roles,
+  ]);
 
   const allowDelegate = Boolean(latestStep?.allowDelegate ?? latestAction?.allowDelegate);
   const delegateOptions = useMemo(() => {

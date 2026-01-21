@@ -54,10 +54,11 @@ export default function TimelinePanel({ instance, roles }) {
 
   const getStepLabel = (step) => {
     const index = stepIndexMap.get(step.id);
+    const actionName = step.actionLabel || step.actionId || 'Step';
     if (index === undefined) {
-      return step.actionLabel || 'Step';
+      return actionName;
     }
-    return `Step ${index + 1} - ${step.actionLabel}`;
+    return actionName ? `Step ${index + 1} - ${actionName}` : `Step ${index + 1}`;
   };
 
   const progressEvents = useMemo(() => {

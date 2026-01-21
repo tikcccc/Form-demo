@@ -249,7 +249,7 @@ export default function WorkflowDetailPage() {
   );
 
   if (!instance) {
-    return <Typography.Text>Workflow not found.</Typography.Text>;
+    return <Typography.Text>Form not found.</Typography.Text>;
   }
   if (!canView) {
     return <Typography.Text>Access denied.</Typography.Text>;

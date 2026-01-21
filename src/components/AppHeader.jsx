@@ -67,7 +67,7 @@ export default function AppHeader() {
           selectedKeys={[selectedKey]}
           onClickMenuItem={(key) => navigate(`/${key}`)}
         >
-          <Menu.Item key="workflows">Workflows</Menu.Item>
+          <Menu.Item key="workflows">Forms</Menu.Item>
           {state.currentRoleId === 'project-admin' && <Menu.Item key="settings">Settings</Menu.Item>}
         </Menu>
         <div className="header-right">

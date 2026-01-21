@@ -333,7 +333,7 @@ export function getPublishIssues(template) {
       issues.push(`Action "${action.label}" needs at least one recipient group.`);
     }
     if (action.closeInstance && action.lastStep) {
-      issues.push(`Action "${action.label}" cannot be both close workflow and require reply.`);
+      issues.push(`Action "${action.label}" cannot be both close form and require reply.`);
     }
     if (action.requiresAttachmentStatus && (!action.statusSet || action.statusSet.length === 0)) {
       issues.push(`Action "${action.label}" requires attachment statuses.`);
@@ -350,7 +350,7 @@ export function getPublishIssues(template) {
       issues.push('Only one start action is allowed when flow is enabled.');
     }
     if (!actions.some((action) => action.closeInstance)) {
-      issues.push('At least one action must close the workflow when flow is enabled.');
+      issues.push('At least one action must close the form when flow is enabled.');
     }
 
     actions.forEach((action) => {
@@ -364,7 +364,7 @@ export function getPublishIssues(template) {
         }
       });
       if (action.closeInstance && nextIds.length > 0) {
-        issues.push(`Action "${action.label}" closes workflow so it should not have next actions.`);
+        issues.push(`Action "${action.label}" closes form so it should not have next actions.`);
       }
       if (action.lastStep && nextIds.length === 0) {
         issues.push(`Action "${action.label}" requires reply but has no next actions.`);

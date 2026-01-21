@@ -72,7 +72,7 @@ export default function WorkflowsPage() {
   ]);
 
   const templateOptions = [
-    { value: 'all', label: 'All Types' },
+    { value: 'all', label: 'All Templates' },
     ...state.templates.map((template) => ({
       value: template.id,
       label: template.name,
@@ -97,19 +97,19 @@ export default function WorkflowsPage() {
         <Space direction="vertical" size={12} style={{ width: '100%' }}>
           <Space style={{ width: '100%', justifyContent: 'space-between' }}>
             <Typography.Title heading={4} style={{ margin: 0 }}>
-              Workflows
+              Forms
             </Typography.Title>
             <Space>
               {isAdmin && <Button onClick={() => navigate('/settings')}>Settings</Button>}
               <Button type="primary" onClick={() => setCreateModalVisible(true)}>
-                Create
+                Create Form
               </Button>
             </Space>
           </Space>
           <Alert
             type="warning"
             showIcon
-            content="Data is stored in web memory. Refreshing resets role groups (including custom), templates, and instances."
+            content="Data is stored in web memory. Refreshing resets role groups (including custom), templates, and forms."
           />
           <Tabs activeTab={activeTab} onChange={setActiveTab} type="rounded">
             <TabPane key="all" title="All" />
@@ -120,7 +120,7 @@ export default function WorkflowsPage() {
           <div className="filter-bar">
             <div className="filter-main">
               <Input.Search
-                placeholder="Search transmittal or title"
+                placeholder="Search form no or title"
                 value={search}
                 onChange={setSearch}
                 style={{ width: 240 }}

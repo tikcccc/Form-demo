@@ -260,7 +260,7 @@ export default function ActionsTab({ template }) {
       render: (_, record) => (record.requiresAttachmentStatus ? 'Yes' : 'No'),
     },
     {
-      title: 'Close Workflow',
+      title: 'Close Form',
       render: (_, record) => (record.closeInstance ? 'Yes' : 'No'),
     },
     {
@@ -382,7 +382,7 @@ export default function ActionsTab({ template }) {
                           Require Reply: {action.lastStep ? 'Yes' : 'No'}
                         </Tag>
                         <Tag color={action.closeInstance ? 'red' : undefined}>
-                          Close Workflow: {action.closeInstance ? 'Yes' : 'No'}
+                          Close Form: {action.closeInstance ? 'Yes' : 'No'}
                         </Tag>
                         {action.requiresAttachmentStatus ? (
                           <Tag color="gold">Attachment Status Required</Tag>
@@ -390,7 +390,7 @@ export default function ActionsTab({ template }) {
                       </Space>
                       {action.closeInstance ? (
                         <Typography.Text className="muted">
-                          Close Workflow disables Require Reply.
+                          Close Form disables Require Reply.
                         </Typography.Text>
                       ) : null}
                       <Space>
@@ -410,7 +410,7 @@ export default function ActionsTab({ template }) {
                       />
                       {!canConfigure && (
                         <Typography.Text className="muted">
-                          Next actions are only configurable when Require Reply is on and Close Workflow is off.
+                          Next actions are only configurable when Require Reply is on and Close Form is off.
                         </Typography.Text>
                       )}
                     </Space>
@@ -512,7 +512,7 @@ export default function ActionsTab({ template }) {
               />
             </Form.Item>
           )}
-          <Form.Item label="Close Workflow">
+          <Form.Item label="Close Form">
             <Switch
               checked={formState.closeInstance}
               onChange={(value) =>

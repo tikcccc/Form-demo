@@ -32,7 +32,7 @@ export default function TemplatesPage() {
 
   const columns = [
     {
-      title: 'Type Name',
+      title: 'Template Name',
       dataIndex: 'name',
     },
     {
@@ -85,10 +85,10 @@ export default function TemplatesPage() {
             </Typography.Title>
           </Space>
           <Space>
-            <Button onClick={() => navigate('/workflows')}>Back to Workflows</Button>
+            <Button onClick={() => navigate('/workflows')}>Back to Forms</Button>
             <Button onClick={actions.resetData}>Reset to Starter Pack</Button>
             <Button type="primary" onClick={() => setModalVisible(true)}>
-              Create Type
+              Create Template
             </Button>
           </Space>
         </Space>
@@ -103,7 +103,7 @@ export default function TemplatesPage() {
         <Space direction="vertical" size={12} style={{ width: '100%' }}>
           <div className="filter-bar">
             <Input.Search
-              placeholder="Search type name or id"
+              placeholder="Search template name or id"
               value={search}
               onChange={setSearch}
               style={{ width: 240 }}

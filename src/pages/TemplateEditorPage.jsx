@@ -23,7 +23,7 @@ export default function TemplateEditorPage() {
   }
 
   if (!template) {
-    return <Typography.Text>Type not found.</Typography.Text>;
+    return <Typography.Text>Template not found.</Typography.Text>;
   }
 
   return (
@@ -31,12 +31,12 @@ export default function TemplateEditorPage() {
       <Card className="page-card">
         <Space style={{ width: '100%', justifyContent: 'space-between' }}>
           <Space direction="vertical" size={4}>
-            <Typography.Text className="muted">Type Editor</Typography.Text>
+            <Typography.Text className="muted">Template Editor</Typography.Text>
             <Typography.Title heading={4} style={{ margin: 0 }}>
               {template.name}
             </Typography.Title>
           </Space>
-          <Button onClick={() => navigate('/settings')}>Back to Types</Button>
+          <Button onClick={() => navigate('/settings')}>Back to Templates</Button>
         </Space>
       </Card>
       <Card className="page-card">

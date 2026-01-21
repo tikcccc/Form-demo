@@ -183,7 +183,7 @@ export default function CommonFieldsPanel() {
     <Space direction="vertical" size={16} style={{ width: '100%' }}>
       <Space style={{ width: '100%', justifyContent: 'space-between' }}>
         <Typography.Text className="muted">
-          Shared fields appear at the top of every workflow form.
+          Shared fields appear at the top of every form.
         </Typography.Text>
         <Button type="primary" onClick={() => openDrawer(null)}>
           Add Field

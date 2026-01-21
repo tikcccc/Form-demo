@@ -32,20 +32,20 @@ export default function CreateTemplateModal({ visible, onClose, templates, onCre
   return (
     <Modal
       visible={visible}
-      title="Create Type"
+      title="Create Template"
       onOk={handleOk}
       onCancel={onClose}
       okText="Create"
     >
       <Form layout="vertical">
-        <Form.Item label="Base Type (optional)">
+        <Form.Item label="Base Template (optional)">
           <Select
             value={sourceTemplateId}
             onChange={setSourceTemplateId}
             options={templateOptions}
           />
         </Form.Item>
-        <Form.Item label="Type Name" required>
+        <Form.Item label="Template Name" required>
           <Input placeholder="e.g. Site Review" value={name} onChange={setName} />
         </Form.Item>
       </Form>

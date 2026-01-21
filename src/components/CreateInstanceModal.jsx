@@ -55,13 +55,13 @@ export default function CreateInstanceModal({ visible, onClose, templates, onCre
   return (
     <Modal
       visible={visible}
-      title="Create Workflow"
+      title="Create Form"
       onOk={handleOk}
       onCancel={onClose}
       okText="Create"
     >
       <Form layout="vertical">
-        <Form.Item label="Type">
+        <Form.Item label="Template">
           <Select options={templateOptions} value={templateId} onChange={setTemplateId} />
         </Form.Item>
         {!hasCommonTitle && (

@@ -15,7 +15,7 @@ import {
 export default function WorkflowTable({ instances, templates, roles, currentRoleId, onSelect }) {
   const columns = [
     {
-      title: 'Transmittal No',
+      title: 'Form No',
       dataIndex: 'transmittalNo',
       render: (_, record) => {
         const unread = isUnread(record, currentRoleId, roles);
@@ -28,7 +28,7 @@ export default function WorkflowTable({ instances, templates, roles, currentRole
       },
     },
     {
-      title: 'Type',
+      title: 'Template',
       dataIndex: 'templateId',
       render: (templateId) => getTemplateById(templates, templateId)?.name || templateId,
     },

@@ -53,15 +53,15 @@ export default function LauncherPage() {
           <Space direction="vertical" size={4}>
             <Typography.Text className="muted">Runtime</Typography.Text>
             <Typography.Title heading={4} style={{ margin: 0 }}>
-              Create Workflow
+              Create Form
             </Typography.Title>
           </Space>
-          <Button onClick={() => navigate('/workflows')}>Back to List</Button>
+          <Button onClick={() => navigate('/workflows')}>Back to Forms</Button>
         </Space>
       </Card>
       <Card className="page-card">
         <Form layout="vertical" style={{ maxWidth: 520 }}>
-          <Form.Item label="Type" required>
+          <Form.Item label="Template" required>
             <Select value={templateId} onChange={setTemplateId} options={templateOptions} />
           </Form.Item>
           {!hasCommonTitle && (

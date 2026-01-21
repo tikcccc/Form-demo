@@ -83,9 +83,9 @@ body {
 
 .filter-bar {
   display: flex;
-  gap: 12px;
-  align-items: center;
-  flex-wrap: nowrap;
+  flex-direction: column;
+  gap: 10px;
+  align-items: stretch;
 }
 
 .filter-main {
@@ -103,13 +103,13 @@ body {
 }
 
 .filter-toggle {
-  margin-left: auto;
+  align-self: flex-start;
   white-space: nowrap;
 }
 
 @media (max-width: 900px) {
   .filter-bar {
-    flex-wrap: wrap;
+    align-items: stretch;
   }
 
   .filter-main {

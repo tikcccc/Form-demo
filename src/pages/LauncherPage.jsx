@@ -3,32 +3,49 @@ import { Button, Card, Form, Input, Select, Space, Typography } from '@arco-desi
 import { useNavigate } from 'react-router-dom';
 import CommonFieldsForm from '../components/CommonFieldsForm.jsx';
 import { useAppContext } from '../store/AppContext.jsx';
-import { buildDefaultCommonData } from '../utils/workflow.js';
+import { buildDefaultCommonData, canInitiateTemplate } from '../utils/workflow.js';
 
 export default function LauncherPage() {
   const { state, actions } = useAppContext();
   const navigate = useNavigate();
-  const [templateId, setTemplateId] = useState(state.templates[0]?.id || '');
+  const [templateId, setTemplateId] = useState('');
   const [title, setTitle] = useState('');
   const commonFields = state.commonFields || [];
   const hasCommonTitle = commonFields.some((field) => field.key === 'title');
   const [commonValues, setCommonValues] = useState(() => buildDefaultCommonData(commonFields));
 
+  const allowedTemplates = useMemo(
+    () =>
+      state.templates.filter(
+        (item) => item.published && canInitiateTemplate(item, state.currentRoleId)
+      ),
+    [state.currentRoleId, state.templates]
+  );
   const template = useMemo(() => {
     if (!templateId) {
       return null;
     }
-    return state.templates.find((item) => item.id === templateId) || null;
-  }, [state.templates, templateId]);
+    return allowedTemplates.find((item) => item.id === templateId) || null;
+  }, [allowedTemplates, templateId]);
 
-  const templateOptions = state.templates.map((item) => ({
+  const templateOptions = allowedTemplates.map((item) => ({
     value: item.id,
-    label: item.published ? item.name : `${item.name} (Unpublished)`,
+    label: item.name,
   }));
 
   useEffect(() => {
     setCommonValues(buildDefaultCommonData(commonFields));
   }, [commonFields]);
+
+  useEffect(() => {
+    if (allowedTemplates.length === 0) {
+      setTemplateId('');
+      return;
+    }
+    if (!allowedTemplates.some((item) => item.id === templateId)) {
+      setTemplateId(allowedTemplates[0].id);
+    }
+  }, [allowedTemplates, templateId]);
 
   const handleCommonValueChange = (key, value) => {
     setCommonValues((prev) => ({ ...prev, [key]: value }));
@@ -43,7 +60,9 @@ export default function LauncherPage() {
       title: title.trim(),
       commonFieldValues: commonValues,
     });
-    navigate(`/workflows/${newId}`);
+    if (newId) {
+      navigate(`/workflows/${newId}`);
+    }
   };
 
   return (
@@ -64,6 +83,11 @@ export default function LauncherPage() {
           <Form.Item label="Template" required>
             <Select value={templateId} onChange={setTemplateId} options={templateOptions} />
           </Form.Item>
+          {templateOptions.length === 0 && (
+            <Typography.Text className="muted">
+              No published templates available for your role.
+            </Typography.Text>
+          )}
           {!hasCommonTitle && (
             <Form.Item label="Title">
               <Input value={title} onChange={setTitle} placeholder="Optional" />

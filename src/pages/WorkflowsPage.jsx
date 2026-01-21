@@ -14,7 +14,13 @@ import { useNavigate } from 'react-router-dom';
 import CreateInstanceModal from '../components/CreateInstanceModal.jsx';
 import WorkflowTable from '../components/WorkflowTable.jsx';
 import { useAppContext } from '../store/AppContext.jsx';
-import { canViewInstance, isInbox, isOverdue, isProjectAdmin } from '../utils/workflow.js';
+import {
+  canInitiateTemplate,
+  canViewInstance,
+  isInbox,
+  isOverdue,
+  isProjectAdmin,
+} from '../utils/workflow.js';
 
 const { TabPane } = Tabs;
 
@@ -28,6 +34,9 @@ export default function WorkflowsPage() {
   const [overdueOnly, setOverdueOnly] = useState(false);
   const [createModalVisible, setCreateModalVisible] = useState(false);
   const isAdmin = isProjectAdmin(state.currentRoleId);
+  const canCreate = state.templates.some(
+    (template) => template.published && canInitiateTemplate(template, state.currentRoleId)
+  );
 
   const filteredInstances = useMemo(() => {
     let data = state.instances.filter((instance) =>
@@ -81,6 +90,7 @@ export default function WorkflowsPage() {
 
   const statusOptions = [
     { value: 'all', label: 'All Status' },
+    { value: 'Draft', label: 'Draft' },
     { value: 'Sent', label: 'Sent' },
     { value: 'Received', label: 'Received' },
     { value: 'Closed', label: 'Closed' },
@@ -88,7 +98,9 @@ export default function WorkflowsPage() {
 
   const handleCreate = (payload) => {
     const newId = actions.createInstance(payload);
-    navigate(`/workflows/${newId}`);
+    if (newId) {
+      navigate(`/workflows/${newId}`);
+    }
   };
 
   return (
@@ -101,7 +113,11 @@ export default function WorkflowsPage() {
             </Typography.Title>
             <Space>
               {isAdmin && <Button onClick={() => navigate('/settings')}>Settings</Button>}
-              <Button type="primary" onClick={() => setCreateModalVisible(true)}>
+              <Button
+                type="primary"
+                onClick={() => setCreateModalVisible(true)}
+                disabled={!canCreate}
+              >
                 Create Form
               </Button>
             </Space>

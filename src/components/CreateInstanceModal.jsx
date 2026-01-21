@@ -1,8 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Button, Form, Input, Modal, Select } from '@arco-design/web-react';
+import { Button, Form, Input, Modal, Select, Typography } from '@arco-design/web-react';
 import CommonFieldsForm from './CommonFieldsForm.jsx';
 import { useAppContext } from '../store/AppContext.jsx';
-import { buildDefaultCommonData } from '../utils/workflow.js';
+import { buildDefaultCommonData, canInitiateTemplate } from '../utils/workflow.js';
 
 export default function CreateInstanceModal({ visible, onClose, templates, onCreate }) {
   const { state } = useAppContext();
@@ -12,23 +12,27 @@ export default function CreateInstanceModal({ visible, onClose, templates, onCre
   const hasCommonTitle = commonFields.some((field) => field.key === 'title');
   const [commonValues, setCommonValues] = useState(() => buildDefaultCommonData(commonFields));
 
-  const templateOptions = useMemo(
+  const allowedTemplates = useMemo(
     () =>
-      templates
-        .filter((template) => template.published)
-        .map((template) => ({ value: template.id, label: template.name })),
-    [templates]
+      templates.filter(
+        (template) =>
+          template.published && canInitiateTemplate(template, state.currentRoleId)
+      ),
+    [state.currentRoleId, templates]
+  );
+
+  const templateOptions = useMemo(
+    () => allowedTemplates.map((template) => ({ value: template.id, label: template.name })),
+    [allowedTemplates]
   );
 
   useEffect(() => {
     if (visible) {
-      const defaultTemplate = templates.find(
-        (template) => template.published
-      );
+      const defaultTemplate = allowedTemplates[0] || null;
       setTemplateId(defaultTemplate?.id || '');
       setTitle('');
     }
-  }, [visible, templates]);
+  }, [allowedTemplates, visible]);
 
   useEffect(() => {
     if (visible) {
@@ -42,6 +46,9 @@ export default function CreateInstanceModal({ visible, onClose, templates, onCre
 
   const handleOk = () => {
     if (!templateId) {
+      return;
+    }
+    if (!allowedTemplates.some((template) => template.id === templateId)) {
       return;
     }
     onCreate({
@@ -64,6 +71,11 @@ export default function CreateInstanceModal({ visible, onClose, templates, onCre
         <Form.Item label="Template">
           <Select options={templateOptions} value={templateId} onChange={setTemplateId} />
         </Form.Item>
+        {templateOptions.length === 0 && (
+          <Typography.Text className="muted">
+            No published templates available for your role.
+          </Typography.Text>
+        )}
         {!hasCommonTitle && (
           <Form.Item label="Title">
             <Input placeholder="Optional" value={title} onChange={setTitle} />

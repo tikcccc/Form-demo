@@ -1,5 +1,5 @@
 import React from 'react';
-import { Alert, Space, Switch, Typography } from '@arco-design/web-react';
+import { Alert, Select, Space, Switch, Typography } from '@arco-design/web-react';
 import { useAppContext } from '../../store/AppContext.jsx';
 import { getPublishIssues } from '../../utils/workflow.js';
 
@@ -7,6 +7,11 @@ export default function PublishTab({ template }) {
   const { state, actions } = useAppContext();
   const issues = getPublishIssues(template, state.roles);
   const canPublish = issues.length === 0;
+  const initiatorRoles = template.initiatorRoleIds || [];
+  const roleOptions = state.roles.map((role) => ({
+    value: role.id,
+    label: role.label || role.id,
+  }));
 
   return (
     <Space direction="vertical" size={16} style={{ width: '100%' }}>
@@ -35,6 +40,25 @@ export default function PublishTab({ template }) {
           }
         />
       )}
+      <Space direction="vertical" size={6} style={{ width: '100%' }}>
+        <Typography.Text>Allowed initiators</Typography.Text>
+        <Select
+          mode="multiple"
+          placeholder="All roles"
+          options={roleOptions}
+          value={initiatorRoles}
+          onChange={(value) =>
+            actions.updateTemplate(template.id, (current) => ({
+              ...current,
+              initiatorRoleIds: value,
+            }))
+          }
+          allowClear
+        />
+        <Typography.Text className="muted">
+          Initiators can create drafts and view the form, but cannot edit fields after creation.
+        </Typography.Text>
+      </Space>
     </Space>
   );
 }

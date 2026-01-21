@@ -40,6 +40,31 @@ export function isProjectAdmin(roleId) {
   return roleId === 'project-admin';
 }
 
+export function canInitiateTemplate(template, roleId) {
+  if (!template) {
+    return false;
+  }
+  if (isProjectAdmin(roleId)) {
+    return true;
+  }
+  const allowed = template.initiatorRoleIds;
+  if (!Array.isArray(allowed) || allowed.length === 0) {
+    return true;
+  }
+  return allowed.includes(roleId);
+}
+
+export function isInitiatorRole(template, roleId) {
+  if (!template) {
+    return false;
+  }
+  const allowed = template.initiatorRoleIds;
+  if (!Array.isArray(allowed) || allowed.length === 0) {
+    return false;
+  }
+  return allowed.includes(roleId);
+}
+
 export function canViewInstance(instance, roleId, roles) {
   if (!instance) {
     return false;

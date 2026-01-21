@@ -21,6 +21,7 @@ import {
   getRoleGroup,
   getTemplateById,
   isProjectAdmin,
+  isInitiatorRole,
   isInbox,
   isUnread,
   validateFormData,
@@ -105,7 +106,10 @@ export default function WorkflowDetailPage() {
     ? areAttachmentStatusesComplete(instance, statusTargetStepId)
     : true;
   const isDraft = instance ? instance.steps.length === 0 : false;
-  const canEditForm = instance ? instance.status !== 'Closed' && (isDraft || inInbox) : false;
+  const initiatorLocked = Boolean(template && isDraft && isInitiatorRole(template, state.currentRoleId));
+  const canEditForm = instance
+    ? instance.status !== 'Closed' && (isDraft || inInbox) && !initiatorLocked
+    : false;
   const requireEditable = Boolean(instance && !isDraft);
   const canEditAttachments = instance
     ? instance.status !== 'Closed' &&

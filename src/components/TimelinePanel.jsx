@@ -83,8 +83,12 @@ export default function TimelinePanel({ instance, roles }) {
       });
     });
     activityLog.forEach((entry) => {
+      const entryType = entry.type || 'view';
+      if (entryType !== 'view' && entryType !== 'initiate') {
+        return;
+      }
       events.push({
-        type: 'view',
+        type: entryType,
         timestamp: toTimestamp(entry.at),
         order: events.length,
         entry,
@@ -176,6 +180,32 @@ export default function TimelinePanel({ instance, roles }) {
                         {entry.note ? (
                           <Typography.Text className="muted">Note: {entry.note}</Typography.Text>
                         ) : null}
+                      </Space>
+                    </div>
+                  );
+                }
+
+                if (event.type === 'initiate') {
+                  const { entry } = event;
+                  const byLabel =
+                    getRoleById(roles, entry.byRoleId)?.label || entry.byRoleId || '-';
+                  return (
+                    <div
+                      key={entry.id || `initiate-${entry.byRoleId || ''}-${entry.at || event.order}`}
+                      className="timeline-item"
+                    >
+                      <Space direction="vertical" size={4} style={{ width: '100%' }}>
+                        <Space>
+                          <Typography.Text strong>Initiated</Typography.Text>
+                          <Tag>Draft</Tag>
+                        </Space>
+                        {entry.message ? (
+                          <Typography.Text className="muted">{entry.message}</Typography.Text>
+                        ) : null}
+                        <Typography.Text className="muted">
+                          By {byLabel}
+                          {entry.at ? ` at ${formatTimestamp(entry.at)}` : ''}
+                        </Typography.Text>
                       </Space>
                     </div>
                   );

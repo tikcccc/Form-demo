@@ -5,6 +5,7 @@ import {
   buildDefaultFormData,
   buildDefaultCommonData,
   bumpVersion,
+  canInitiateTemplate,
   getAvailableActionsForInstance,
   getLatestSentStep,
   getNextTransmittalNo,
@@ -84,8 +85,15 @@ export function AppProvider({ children }) {
       },
       createInstance({ templateId, title, commonFieldValues = {} }) {
         const newId = `inst-${Date.now()}`;
+        let createdId = null;
         setState((prev) => {
           const template = getTemplateById(prev.templates, templateId);
+          if (!template) {
+            return prev;
+          }
+          if (!canInitiateTemplate(template, prev.currentRoleId)) {
+            return prev;
+          }
           const transmittalNo = getNextTransmittalNo(template, prev.instances);
           const formData = buildDefaultFormData(template);
           const commonDefaults = buildDefaultCommonData(prev.commonFields || []);
@@ -99,26 +107,38 @@ export function AppProvider({ children }) {
           const templateLabel = template?.name || templateId;
           const instanceTitle =
             nextCommonValues.title || title || formData.title || `New ${templateLabel}`;
+          const logAt = new Date().toISOString();
+          const initiatorLabel =
+            getRoleById(prev.roles, prev.currentRoleId)?.label || prev.currentRoleId;
           const newInstance = {
             id: newId,
             transmittalNo,
             templateId,
             title: instanceTitle,
-            status: 'Sent',
+            status: 'Draft',
             createdBy: prev.currentRoleId,
             createdAt: todayISO(),
             formData,
             attachments: [],
             steps: [],
             formHistory: [],
-            activityLog: [],
+            activityLog: [
+              {
+                id: `log-${Date.now()}`,
+                type: 'initiate',
+                message: `${initiatorLabel} initiated the form.`,
+                byRoleId: prev.currentRoleId,
+                at: logAt,
+              },
+            ],
           };
+          createdId = newId;
           return {
             ...prev,
             instances: [newInstance, ...prev.instances],
           };
         });
-        return newId;
+        return createdId;
       },
       updateCommonFields(updater) {
         setState((prev) => {
@@ -577,6 +597,7 @@ export function AppProvider({ children }) {
                 layout: { sections: [] },
                 actions: [],
                 actionFlowEnabled: true,
+                initiatorRoleIds: [],
               };
           return {
             ...prev,

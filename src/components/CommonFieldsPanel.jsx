@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useState } from 'react';
 import {
   Button,
   Drawer,
@@ -8,11 +8,10 @@ import {
   Message,
   Select,
   Space,
-  Switch,
   Table,
   Typography,
 } from '@arco-design/web-react';
-import { useAppContext } from '../../store/AppContext.jsx';
+import { useAppContext } from '../store/AppContext.jsx';
 
 const fieldTypes = [
   { value: 'text', label: 'Text' },
@@ -22,7 +21,7 @@ const fieldTypes = [
   { value: 'boolean', label: 'Boolean' },
 ];
 
-export default function SchemaTab({ template }) {
+export default function CommonFieldsPanel() {
   const { state, actions } = useAppContext();
   const [drawerVisible, setDrawerVisible] = useState(false);
   const [editingField, setEditingField] = useState(null);
@@ -31,64 +30,27 @@ export default function SchemaTab({ template }) {
     key: '',
     label: '',
     type: 'text',
-    required: false,
     options: [],
     defaultValue: '',
     minLength: undefined,
     maxLength: undefined,
     min: undefined,
     max: undefined,
-    visibleRoles: [],
-    editableRoles: [],
-    editableActionIds: [],
   });
-  const roleOptions = state.roles.map((role) => ({
-    value: role.id,
-    label: role.label,
-  }));
-
-  const getActionOptionsForRoles = (roles) => {
-    if (!roles || roles.length === 0) {
-      return template.actions.map((action) => ({
-        value: action.id,
-        label: action.label,
-      }));
-    }
-    const roleSet = new Set(roles);
-    return template.actions
-      .filter((action) => action.allowedRoles.some((role) => roleSet.has(role)))
-      .map((action) => ({ value: action.id, label: action.label }));
-  };
-
-  const filteredActionOptions = useMemo(
-    () => getActionOptionsForRoles(formState.editableRoles),
-    [formState.editableRoles, template.actions]
-  );
 
   const openDrawer = (field) => {
     if (field) {
-      const initialRoles = field.editableRoles || [];
-      const allowedActionIds = new Set(
-        getActionOptionsForRoles(initialRoles).map((option) => option.value)
-      );
-      const editableActionIds = (field.editableActionIds || []).filter((id) =>
-        allowedActionIds.has(id)
-      );
       setEditingField(field);
       setFormState({
         key: field.key,
         label: field.label,
         type: field.type,
-        required: Boolean(field.required),
         options: field.options || [],
         defaultValue: field.defaultValue ?? '',
         minLength: field.minLength,
         maxLength: field.maxLength,
         min: field.min,
         max: field.max,
-        visibleRoles: field.visibleRoles || [],
-        editableRoles: initialRoles,
-        editableActionIds,
       });
     } else {
       setEditingField(null);
@@ -96,16 +58,12 @@ export default function SchemaTab({ template }) {
         key: '',
         label: '',
         type: 'text',
-        required: false,
         options: [],
         defaultValue: '',
         minLength: undefined,
         maxLength: undefined,
         min: undefined,
         max: undefined,
-        visibleRoles: [],
-        editableRoles: [],
-        editableActionIds: [],
       });
     }
     setOptionInput('');
@@ -122,21 +80,24 @@ export default function SchemaTab({ template }) {
       Message.warning('Field label is required.');
       return;
     }
-    if (!editingField && template.schema.some((field) => field.key === key)) {
+    if (!editingField && state.commonFields.some((field) => field.key === key)) {
       Message.error('Field key already exists.');
       return;
     }
-    const commonFieldKeys = new Set((state.commonFields || []).map((field) => field.key));
-    if (!editingField && commonFieldKeys.has(key)) {
-      Message.error('Field key conflicts with a common field.');
+    if (
+      state.templates.some((template) =>
+        template.schema.some((field) => field.key === key)
+      )
+    ) {
+      Message.error('Field key conflicts with a template field.');
       return;
     }
+
     const options = formState.options.map((item) => item.trim()).filter(Boolean);
     const nextField = {
       key,
       label: formState.label.trim(),
       type: formState.type,
-      required: formState.required,
     };
     if (formState.type === 'select') {
       nextField.options = options;
@@ -157,25 +118,15 @@ export default function SchemaTab({ template }) {
         nextField.max = formState.max;
       }
     }
-    if (formState.defaultValue) {
+    if (formState.defaultValue !== '') {
       nextField.defaultValue = formState.defaultValue;
     }
-    if (formState.visibleRoles.length > 0) {
-      nextField.visibleRoles = formState.visibleRoles;
-    }
-    if (formState.editableRoles.length > 0) {
-      nextField.editableRoles = formState.editableRoles;
-    }
-    if (formState.editableActionIds.length > 0) {
-      nextField.editableActionIds = formState.editableActionIds;
-    }
 
-    actions.updateTemplate(template.id, (current) => {
-      const nextSchema = editingField
-        ? current.schema.map((field) => (field.key === editingField.key ? nextField : field))
-        : [...current.schema, nextField];
-      return { ...current, schema: nextSchema };
-    });
+    actions.updateCommonFields((current) =>
+      editingField
+        ? current.map((field) => (field.key === editingField.key ? nextField : field))
+        : [...current, nextField]
+    );
     setDrawerVisible(false);
   };
 
@@ -205,34 +156,49 @@ export default function SchemaTab({ template }) {
     });
   };
 
+  const handleDelete = (fieldKey) => {
+    actions.updateCommonFields((current) => current.filter((field) => field.key !== fieldKey));
+  };
+
   const columns = [
     { title: 'Key', dataIndex: 'key' },
     { title: 'Label', dataIndex: 'label' },
     { title: 'Type', dataIndex: 'type' },
     {
-      title: 'Required',
-      render: (_, record) => (record.required ? 'Yes' : 'No'),
-    },
-    {
       title: 'Actions',
       render: (_, record) => (
-        <Button size="mini" onClick={() => openDrawer(record)}>
-          Edit
-        </Button>
+        <Space>
+          <Button size="mini" onClick={() => openDrawer(record)}>
+            Edit
+          </Button>
+          <Button size="mini" status="danger" onClick={() => handleDelete(record.key)}>
+            Remove
+          </Button>
+        </Space>
       ),
     },
   ];
 
   return (
     <Space direction="vertical" size={16} style={{ width: '100%' }}>
-      <Button type="primary" onClick={() => openDrawer(null)}>
-        Add Field
-      </Button>
-      <Table rowKey="key" columns={columns} data={template.schema} pagination={false} />
+      <Space style={{ width: '100%', justifyContent: 'space-between' }}>
+        <Typography.Text className="muted">
+          Common fields appear at the top of every workflow form.
+        </Typography.Text>
+        <Button type="primary" onClick={() => openDrawer(null)}>
+          Add Field
+        </Button>
+      </Space>
+      <Table
+        rowKey="key"
+        columns={columns}
+        data={state.commonFields || []}
+        pagination={false}
+      />
       <Drawer
         width={420}
         visible={drawerVisible}
-        title={editingField ? 'Edit Field' : 'Add Field'}
+        title={editingField ? 'Edit Common Field' : 'Add Common Field'}
         onOk={handleSave}
         onCancel={() => setDrawerVisible(false)}
         okText="Save"
@@ -350,52 +316,6 @@ export default function SchemaTab({ template }) {
             <Input
               value={formState.defaultValue}
               onChange={(value) => setFormState({ ...formState, defaultValue: value })}
-            />
-          </Form.Item>
-          <Form.Item label="Visible Roles">
-            <Select
-              mode="multiple"
-              options={roleOptions}
-              value={formState.visibleRoles}
-              onChange={(value) => setFormState({ ...formState, visibleRoles: value })}
-              placeholder="All roles"
-            />
-          </Form.Item>
-          <Form.Item label="Editable Roles">
-            <Select
-              mode="multiple"
-              options={roleOptions}
-              value={formState.editableRoles}
-              onChange={(value) => {
-                const allowedActionIds = new Set(
-                  getActionOptionsForRoles(value).map((option) => option.value)
-                );
-                const nextEditableActionIds = formState.editableActionIds.filter((id) =>
-                  allowedActionIds.has(id)
-                );
-                setFormState({
-                  ...formState,
-                  editableRoles: value,
-                  editableActionIds: nextEditableActionIds,
-                });
-              }}
-              placeholder="All roles"
-            />
-          </Form.Item>
-          <Form.Item label="Editable Actions">
-            <Select
-              mode="multiple"
-              options={filteredActionOptions}
-              value={formState.editableActionIds}
-              onChange={(value) => setFormState({ ...formState, editableActionIds: value })}
-              placeholder="Any action"
-              disabled={filteredActionOptions.length === 0}
-            />
-          </Form.Item>
-          <Form.Item label="Required">
-            <Switch
-              checked={formState.required}
-              onChange={(value) => setFormState({ ...formState, required: value })}
             />
           </Form.Item>
         </Form>

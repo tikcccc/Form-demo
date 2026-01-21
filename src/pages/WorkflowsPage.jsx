@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { Button, Card, Input, Select, Space, Switch, Tabs, Typography } from '@arco-design/web-react';
 import { useNavigate } from 'react-router-dom';
+import CreateInstanceModal from '../components/CreateInstanceModal.jsx';
 import WorkflowTable from '../components/WorkflowTable.jsx';
 import { useAppContext } from '../store/AppContext.jsx';
 import { canViewInstance, isInbox, isOverdue, isProjectAdmin } from '../utils/workflow.js';
@@ -8,13 +9,14 @@ import { canViewInstance, isInbox, isOverdue, isProjectAdmin } from '../utils/wo
 const { TabPane } = Tabs;
 
 export default function WorkflowsPage() {
-  const { state } = useAppContext();
+  const { state, actions } = useAppContext();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('all');
   const [search, setSearch] = useState('');
   const [templateFilter, setTemplateFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [overdueOnly, setOverdueOnly] = useState(false);
+  const [createModalVisible, setCreateModalVisible] = useState(false);
   const isAdmin = isProjectAdmin(state.currentRoleId);
 
   const filteredInstances = useMemo(() => {
@@ -73,6 +75,11 @@ export default function WorkflowsPage() {
     { value: 'Closed', label: 'Closed' },
   ];
 
+  const handleCreate = (payload) => {
+    const newId = actions.createInstance(payload);
+    navigate(`/workflows/${newId}`);
+  };
+
   return (
     <Space direction="vertical" size={16} style={{ width: '100%' }}>
       <Card className="page-card">
@@ -83,7 +90,7 @@ export default function WorkflowsPage() {
             </Typography.Title>
             <Space>
               {isAdmin && <Button onClick={() => navigate('/settings')}>Settings</Button>}
-              <Button type="primary" onClick={() => navigate('/launch')}>
+              <Button type="primary" onClick={() => setCreateModalVisible(true)}>
                 Create
               </Button>
             </Space>
@@ -120,6 +127,12 @@ export default function WorkflowsPage() {
           onSelect={(id) => navigate(`/workflows/${id}`)}
         />
       </Card>
+      <CreateInstanceModal
+        visible={createModalVisible}
+        onClose={() => setCreateModalVisible(false)}
+        templates={state.templates}
+        onCreate={handleCreate}
+      />
     </Space>
   );
 }

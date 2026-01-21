@@ -39,6 +39,8 @@ export default function WorkflowDetailPage() {
   const [attachmentViewId, setAttachmentViewId] = useState('draft');
   const [delegateGroup, setDelegateGroup] = useState('');
   const [delegateNote, setDelegateNote] = useState('');
+  const [draftFormData, setDraftFormData] = useState({});
+  const [dirtyKeys, setDirtyKeys] = useState([]);
 
   useEffect(() => {
     setSelectedActionId('');
@@ -54,6 +56,11 @@ export default function WorkflowDetailPage() {
   const availableActions = useMemo(
     () => getAvailableActionsForInstance(template, state.currentRoleId, instance),
     [template, state.currentRoleId, instance]
+  );
+  const commonFields = state.commonFields || [];
+  const commonFieldKeys = useMemo(
+    () => commonFields.map((field) => field.key),
+    [commonFields]
   );
 
   const selectedAction = availableActions.find((action) => action.id === selectedActionId);
@@ -74,6 +81,7 @@ export default function WorkflowDetailPage() {
   const attachmentsReady = instance ? areAttachmentStatusesComplete(instance) : true;
   const isDraft = instance ? instance.steps.length === 0 : false;
   const canEditForm = instance ? instance.status === 'Open' && (isDraft || inInbox) : false;
+  const requireEditable = Boolean(instance && !isDraft);
   const actionContextId =
     selectedActionId || (availableActions.length === 1 ? availableActions[0].id : '');
   const canEditAttachments = instance
@@ -188,21 +196,40 @@ export default function WorkflowDetailPage() {
     if (!instance) {
       return;
     }
+    setDraftFormData(instance.formData || {});
+    setDirtyKeys([]);
+  }, [instanceId, instance?.formData]);
+
+  useEffect(() => {
+    if (!instance) {
+      return;
+    }
     const availableViews = new Set(attachmentViewOptions.map((option) => option.value));
     if (!availableViews.has(attachmentViewId)) {
       setAttachmentViewId(defaultAttachmentViewId);
     }
   }, [attachmentViewId, attachmentViewOptions, defaultAttachmentViewId, instance]);
 
-  const formData = instance?.formData || {};
+  const savedFormData = instance?.formData || {};
+  const formData = canEditForm ? draftFormData : savedFormData;
   const formErrors = useMemo(
     () =>
       validateFormData(template, formData, {
         roleId: state.currentRoleId,
         actionId: actionContextId,
         canEdit: canEditForm,
+        requireEditable,
+        commonFieldKeys,
       }),
-    [actionContextId, canEditForm, formData, state.currentRoleId, template]
+    [
+      actionContextId,
+      canEditForm,
+      commonFieldKeys,
+      formData,
+      requireEditable,
+      state.currentRoleId,
+      template,
+    ]
   );
 
   if (!instance) {
@@ -218,12 +245,40 @@ export default function WorkflowDetailPage() {
     : attachmentsByStep.get(attachmentViewId) || [];
   const statusRequiredForView =
     isDraftView && canEditAttachments && Boolean(selectedAction?.requiresAttachmentStatus);
+  const isFormDirty = dirtyKeys.length > 0;
   const formValid = !canEditForm || Object.keys(formErrors).length === 0;
   const canTakeAction = instance.status === 'Open' && (inInbox || isDraft);
   const createdByLabel = getRoleById(state.roles, instance.createdBy)?.label || instance.createdBy;
   const delegateEnabled = Boolean(
     showDelegatePanel && delegateOptions.length > 0 && delegateGroup
   );
+
+  const handleFormChange = (key, value) => {
+    if (!canEditForm) {
+      return;
+    }
+    setDraftFormData((prev) => ({ ...prev, [key]: value }));
+    const savedValue = savedFormData[key];
+    setDirtyKeys((prev) => {
+      const next = new Set(prev);
+      if (Object.is(savedValue, value)) {
+        next.delete(key);
+      } else {
+        next.add(key);
+      }
+      return Array.from(next);
+    });
+  };
+
+  const handleFormSave = () => {
+    if (!instance || !isFormDirty) {
+      return;
+    }
+    if (Object.keys(formErrors).length > 0) {
+      return;
+    }
+    actions.updateFormData(instance.id, draftFormData);
+  };
 
   const handleSend = () => {
     if (!selectedAction || !selectedToGroup) {
@@ -235,7 +290,7 @@ export default function WorkflowDetailPage() {
     if (replyRequired && !message.trim()) {
       return;
     }
-    if (canEditForm && !formValid) {
+    if (canEditForm && (!formValid || isFormDirty)) {
       return;
     }
     actions.sendAction({
@@ -299,16 +354,32 @@ export default function WorkflowDetailPage() {
         />
       )}
       <div className="detail-grid">
-        <DynamicForm
-          template={template}
-          formData={instance.formData}
-          roleId={state.currentRoleId}
-          actionId={actionContextId}
-          canEdit={canEditForm}
-          onChange={(key, value) => actions.updateFormField(instance.id, key, value)}
-          errors={formErrors}
-          showValidation={canEditForm}
-        />
+        <Space direction="vertical" size={12} style={{ width: '100%' }}>
+          {canEditForm && (
+            <Space style={{ width: '100%', justifyContent: 'flex-end' }}>
+              <Button
+                type="primary"
+                onClick={handleFormSave}
+                disabled={!isFormDirty || Object.keys(formErrors).length > 0}
+              >
+                Save
+              </Button>
+            </Space>
+          )}
+          <DynamicForm
+            template={template}
+            formData={formData}
+            roleId={state.currentRoleId}
+            actionId={actionContextId}
+            canEdit={canEditForm}
+            requireEditable={requireEditable}
+            commonFields={commonFields}
+            commonEditable={false}
+            onChange={handleFormChange}
+            errors={formErrors}
+            showValidation={canEditForm}
+          />
+        </Space>
         <AttachmentsPanel
           attachments={attachmentsForView}
           onAdd={(attachment) => actions.addAttachment(instance.id, attachment)}
@@ -350,6 +421,7 @@ export default function WorkflowDetailPage() {
               attachmentsReady={attachmentsReady}
               messageRequired={replyRequired}
               formValid={formValid}
+              formDirty={isFormDirty}
               showFormErrors={canEditForm}
             />
           )}

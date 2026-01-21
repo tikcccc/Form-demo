@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { Button, Card, Input, Space, Table, Tag, Typography } from '@arco-design/web-react';
 import { Navigate, useNavigate } from 'react-router-dom';
+import CommonFieldsPanel from '../components/CommonFieldsPanel.jsx';
 import CreateTemplateModal from '../components/CreateTemplateModal.jsx';
 import { useAppContext } from '../store/AppContext.jsx';
 import { isProjectAdmin } from '../utils/workflow.js';
@@ -91,6 +92,12 @@ export default function TemplatesPage() {
             </Button>
           </Space>
         </Space>
+      </Card>
+      <Card className="page-card">
+        <Typography.Title heading={5} style={{ marginTop: 0 }}>
+          Common Fields
+        </Typography.Title>
+        <CommonFieldsPanel />
       </Card>
       <Card className="page-card">
         <Space direction="vertical" size={12} style={{ width: '100%' }}>

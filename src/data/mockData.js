@@ -11,6 +11,16 @@ export const roles = [
   { id: 'cm', label: 'CM', group: 'CM' },
 ];
 
+export const commonFields = [
+  { key: 'title', label: 'Title', type: 'text' },
+  {
+    key: 'contract',
+    label: 'Contract',
+    type: 'select',
+    options: ['Contract A', 'Contract B'],
+  },
+];
+
 export const templates = [
   {
     id: 'rfi-default',
@@ -18,7 +28,6 @@ export const templates = [
     published: true,
     actionFlowEnabled: true,
     schema: [
-      { key: 'title', label: 'Title', type: 'text', required: true },
       { key: 'subject', label: 'Subject', type: 'text', required: true },
       {
         key: 'discipline',
@@ -56,7 +65,7 @@ export const templates = [
         {
           id: 'rfi-basic',
           name: 'Request',
-          fields: ['title', 'subject', 'discipline', 'priority'],
+          fields: ['subject', 'discipline', 'priority'],
         },
         {
           id: 'rfi-question',
@@ -105,7 +114,6 @@ export const templates = [
     published: true,
     actionFlowEnabled: true,
     schema: [
-      { key: 'title', label: 'Title', type: 'text', required: true },
       {
         key: 'reason',
         label: 'Change Reason',
@@ -121,7 +129,7 @@ export const templates = [
         {
           id: 'cor-basic',
           name: 'Change Summary',
-          fields: ['title', 'reason', 'costDelta', 'timeDelta'],
+          fields: ['reason', 'costDelta', 'timeDelta'],
         },
         {
           id: 'cor-desc',
@@ -176,7 +184,6 @@ export const templates = [
     published: true,
     actionFlowEnabled: true,
     schema: [
-      { key: 'title', label: 'Title', type: 'text', required: true },
       {
         key: 'specSection',
         label: 'Spec Section',
@@ -198,7 +205,7 @@ export const templates = [
         {
           id: 'csf-basic',
           name: 'Submittal',
-          fields: ['title', 'specSection', 'package', 'description'],
+          fields: ['specSection', 'package', 'description'],
         },
       ],
     },
@@ -589,6 +596,7 @@ export const instances = [
 export const initialState = {
   projects,
   roles,
+  commonFields,
   templates,
   fileLibrary,
   instances,

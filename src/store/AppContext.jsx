@@ -3,6 +3,7 @@ import { initialState } from '../data/mockData.js';
 import {
   addDays,
   buildDefaultFormData,
+  buildDefaultCommonData,
   bumpRevision,
   getAvailableActionsForInstance,
   getLatestSentStep,
@@ -20,10 +21,14 @@ export function AppProvider({ children }) {
 
   useEffect(() => {
     setState((prev) => {
-      if (prev.fileLibrary) {
-        return prev;
+      let nextState = prev;
+      if (!prev.fileLibrary) {
+        nextState = { ...nextState, fileLibrary: initialState.fileLibrary };
       }
-      return { ...prev, fileLibrary: initialState.fileLibrary };
+      if (!Array.isArray(prev.commonFields)) {
+        nextState = { ...nextState, commonFields: initialState.commonFields };
+      }
+      return nextState;
     });
   }, []);
 
@@ -42,17 +47,23 @@ export function AppProvider({ children }) {
           currentProjectId: prev.currentProjectId,
         }));
       },
-      createInstance({ templateId, title }) {
+      createInstance({ templateId, title, commonFieldValues = {} }) {
         const newId = `inst-${Date.now()}`;
         setState((prev) => {
           const template = getTemplateById(prev.templates, templateId);
           const transmittalNo = getNextTransmittalNo(template, prev.instances);
           const formData = buildDefaultFormData(template);
-          if (title) {
-            formData.title = title;
+          const commonDefaults = buildDefaultCommonData(prev.commonFields || []);
+          const nextCommonValues = { ...commonDefaults, ...commonFieldValues };
+          if (title && !Object.prototype.hasOwnProperty.call(commonFieldValues, 'title')) {
+            nextCommonValues.title = title;
           }
+          Object.entries(nextCommonValues).forEach(([key, value]) => {
+            formData[key] = value;
+          });
           const templateLabel = template?.name || templateId;
-          const instanceTitle = title || formData.title || `New ${templateLabel}`;
+          const instanceTitle =
+            nextCommonValues.title || title || formData.title || `New ${templateLabel}`;
           const newInstance = {
             id: newId,
             transmittalNo,
@@ -64,6 +75,7 @@ export function AppProvider({ children }) {
             formData,
             attachments: [],
             steps: [],
+            formHistory: [],
           };
           return {
             ...prev,
@@ -72,6 +84,16 @@ export function AppProvider({ children }) {
         });
         return newId;
       },
+      updateCommonFields(updater) {
+        setState((prev) => {
+          const nextCommonFields =
+            typeof updater === 'function' ? updater(prev.commonFields || []) : updater;
+          return {
+            ...prev,
+            commonFields: nextCommonFields,
+          };
+        });
+      },
       updateFormField(instanceId, key, value) {
         setState((prev) => ({
           ...prev,
@@ -79,11 +101,83 @@ export function AppProvider({ children }) {
             if (instance.id !== instanceId) {
               return instance;
             }
+            const previousValue = instance.formData[key];
+            if (Object.is(previousValue, value)) {
+              return instance;
+            }
+            const template = getTemplateById(prev.templates, instance.templateId);
+            const commonField = (prev.commonFields || []).find((field) => field.key === key);
+            const schemaField = template?.schema?.find((field) => field.key === key);
+            const fieldLabel = commonField?.label || schemaField?.label || key;
             const nextFormData = { ...instance.formData, [key]: value };
+            const nextHistory = [
+              ...(instance.formHistory || []),
+              {
+                id: `fh-${Date.now()}`,
+                fieldKey: key,
+                fieldLabel,
+                from: previousValue,
+                to: value,
+                byRoleId: prev.currentRoleId,
+                at: new Date().toISOString(),
+              },
+            ];
             return {
               ...instance,
               formData: nextFormData,
               title: key === 'title' ? value : instance.title,
+              formHistory: nextHistory,
+            };
+          }),
+        }));
+      },
+      updateFormData(instanceId, updates = {}) {
+        setState((prev) => ({
+          ...prev,
+          instances: prev.instances.map((instance) => {
+            if (instance.id !== instanceId) {
+              return instance;
+            }
+            const template = getTemplateById(prev.templates, instance.templateId);
+            const commonFields = prev.commonFields || [];
+            const nextFormData = { ...instance.formData };
+            const savedAt = new Date().toISOString();
+            let changeCount = 0;
+            const nextHistory = [...(instance.formHistory || [])];
+
+            Object.entries(updates).forEach(([key, value]) => {
+              if (Object.is(instance.formData[key], value)) {
+                return;
+              }
+              nextFormData[key] = value;
+              const commonField = commonFields.find((field) => field.key === key);
+              const schemaField = template?.schema?.find((field) => field.key === key);
+              const fieldLabel = commonField?.label || schemaField?.label || key;
+              nextHistory.push({
+                id: `fh-${Date.now()}-${changeCount}`,
+                fieldKey: key,
+                fieldLabel,
+                from: instance.formData[key],
+                to: value,
+                byRoleId: prev.currentRoleId,
+                at: savedAt,
+              });
+              changeCount += 1;
+            });
+
+            if (changeCount === 0) {
+              return instance;
+            }
+
+            const nextTitle = Object.prototype.hasOwnProperty.call(nextFormData, 'title')
+              ? nextFormData.title
+              : instance.title;
+
+            return {
+              ...instance,
+              formData: nextFormData,
+              title: nextTitle,
+              formHistory: nextHistory,
             };
           }),
         }));

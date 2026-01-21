@@ -1,13 +1,18 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Button, Card, Form, Input, Select, Space, Typography } from '@arco-design/web-react';
 import { useNavigate } from 'react-router-dom';
+import CommonFieldsForm from '../components/CommonFieldsForm.jsx';
 import { useAppContext } from '../store/AppContext.jsx';
+import { buildDefaultCommonData } from '../utils/workflow.js';
 
 export default function LauncherPage() {
   const { state, actions } = useAppContext();
   const navigate = useNavigate();
   const [templateId, setTemplateId] = useState(state.templates[0]?.id || '');
   const [title, setTitle] = useState('');
+  const commonFields = state.commonFields || [];
+  const hasCommonTitle = commonFields.some((field) => field.key === 'title');
+  const [commonValues, setCommonValues] = useState(() => buildDefaultCommonData(commonFields));
 
   const template = useMemo(() => {
     if (!templateId) {
@@ -21,11 +26,23 @@ export default function LauncherPage() {
     label: item.published ? item.name : `${item.name} (Unpublished)`,
   }));
 
+  useEffect(() => {
+    setCommonValues(buildDefaultCommonData(commonFields));
+  }, [commonFields]);
+
+  const handleCommonValueChange = (key, value) => {
+    setCommonValues((prev) => ({ ...prev, [key]: value }));
+  };
+
   const handleCreate = () => {
     if (!templateId || !template || !template.published) {
       return;
     }
-    const newId = actions.createInstance({ templateId: template.id, title: title.trim() });
+    const newId = actions.createInstance({
+      templateId: template.id,
+      title: title.trim(),
+      commonFieldValues: commonValues,
+    });
     navigate(`/workflows/${newId}`);
   };
 
@@ -47,9 +64,17 @@ export default function LauncherPage() {
           <Form.Item label="Type" required>
             <Select value={templateId} onChange={setTemplateId} options={templateOptions} />
           </Form.Item>
-          <Form.Item label="Title">
-            <Input value={title} onChange={setTitle} placeholder="Optional" />
-          </Form.Item>
+          {!hasCommonTitle && (
+            <Form.Item label="Title">
+              <Input value={title} onChange={setTitle} placeholder="Optional" />
+            </Form.Item>
+          )}
+          <Typography.Text className="muted">Common Fields</Typography.Text>
+          <CommonFieldsForm
+            fields={commonFields}
+            values={commonValues}
+            onValueChange={handleCommonValueChange}
+          />
           <Button type="primary" onClick={handleCreate} disabled={!template || !template.published}>
             Create
           </Button>

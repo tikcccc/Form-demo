@@ -4,20 +4,24 @@ import { getFieldAccess } from '../utils/workflow.js';
 
 export default function DynamicForm({
   template,
-  formData,
+  formData = {},
   onChange,
   errors = {},
   showValidation = false,
   roleId = '',
   actionId = '',
   canEdit = false,
+  requireEditable = false,
+  commonFields = [],
+  commonEditable = false,
 }) {
   if (!template) {
     return null;
   }
 
   const fieldMap = new Map(template.schema.map((field) => [field.key, field]));
-  const accessContext = { roleId, actionId, canEdit };
+  const commonFieldKeys = new Set(commonFields.map((field) => field.key));
+  const accessContext = { roleId, actionId, canEdit, requireEditable };
 
   const renderInput = (field, access) => {
     const value = formData[field.key];
@@ -81,6 +85,17 @@ export default function DynamicForm({
 
   return (
     <div>
+      {commonFields.length > 0 && (
+        <Card className="panel-card form-section" title="Common Fields" bordered={false}>
+          <Form layout="vertical">
+            {commonFields.map((field) => (
+              <Form.Item key={field.key} label={field.label}>
+                {renderInput(field, { editable: commonEditable })}
+              </Form.Item>
+            ))}
+          </Form>
+        </Card>
+      )}
       {template.layout.sections.map((section) => {
         if (section.visibleWhen) {
           const expected = section.visibleWhen.equals;
@@ -93,6 +108,9 @@ export default function DynamicForm({
         const visibleFields = section.fields
           .map((fieldKey) => {
             const field = fieldMap.get(fieldKey);
+            if (commonFieldKeys.has(fieldKey)) {
+              return null;
+            }
             if (!field) {
               return null;
             }

@@ -4,6 +4,7 @@ import {
   Card,
   Grid,
   Input,
+  InputNumber,
   Modal,
   Select,
   Space,
@@ -11,7 +12,7 @@ import {
   Typography,
 } from '@arco-design/web-react';
 import { useAppContext } from '../../store/AppContext.jsx';
-import { buildDefaultFormData } from '../../utils/workflow.js';
+import { buildDefaultCommonData, buildDefaultFormData } from '../../utils/workflow.js';
 import DynamicForm from '../DynamicForm.jsx';
 
 const { Row, Col } = Grid;
@@ -31,11 +32,73 @@ export default function LayoutTab({ template }) {
   }, [template, selectedSectionId]);
 
   const selectedSection = template.layout.sections.find((section) => section.id === selectedSectionId);
+  const commonFields = state.commonFields || [];
   const fieldOptions = template.schema.map((field) => ({
     value: field.key,
     label: field.label,
   }));
-  const previewData = useMemo(() => buildDefaultFormData(template), [template]);
+  const previewData = useMemo(
+    () => ({
+      ...buildDefaultFormData(template),
+      ...buildDefaultCommonData(commonFields),
+    }),
+    [commonFields, template]
+  );
+  const booleanOptions = [
+    { value: true, label: 'True' },
+    { value: false, label: 'False' },
+  ];
+
+  const getFieldByKey = (fieldKey) =>
+    template.schema.find((field) => field.key === fieldKey) || null;
+
+  const getDefaultVisibleValue = (field) => {
+    if (!field) {
+      return '';
+    }
+    if (field.type === 'number') {
+      return 0;
+    }
+    if (field.type === 'boolean') {
+      return false;
+    }
+    if (field.type === 'select') {
+      return field.options && field.options.length > 0 ? field.options[0] : '';
+    }
+    return '';
+  };
+
+  const normalizeVisibleWhenValue = (field, value) => {
+    if (!field) {
+      return value ?? '';
+    }
+    if (field.type === 'number') {
+      if (value === '' || value === null || value === undefined) {
+        return undefined;
+      }
+      const numeric = Number(value);
+      return Number.isNaN(numeric) ? undefined : numeric;
+    }
+    if (field.type === 'boolean') {
+      if (typeof value === 'boolean') {
+        return value;
+      }
+      if (value === 'true') {
+        return true;
+      }
+      if (value === 'false') {
+        return false;
+      }
+      return undefined;
+    }
+    if (field.type === 'select') {
+      if (!field.options || field.options.length === 0) {
+        return undefined;
+      }
+      return field.options.includes(value) ? value : undefined;
+    }
+    return value ?? '';
+  };
 
   const updateSection = (updates) => {
     if (!selectedSection) {
@@ -100,6 +163,90 @@ export default function LayoutTab({ template }) {
     updateSection({ fields: nextFields });
   };
 
+  const visibleWhenField = selectedSection?.visibleWhen?.field
+    ? getFieldByKey(selectedSection.visibleWhen.field)
+    : null;
+  const visibleWhenValue = normalizeVisibleWhenValue(
+    visibleWhenField,
+    selectedSection?.visibleWhen?.equals
+  );
+
+  const renderVisibleWhenInput = () => {
+    if (!selectedSection?.visibleWhen?.field) {
+      return <Input placeholder="Equals" disabled />;
+    }
+    if (!visibleWhenField) {
+      return <Input placeholder="Equals" disabled />;
+    }
+    if (visibleWhenField.type === 'number') {
+      return (
+        <InputNumber
+          placeholder="Equals"
+          value={visibleWhenValue}
+          onChange={(value) =>
+            updateSection({
+              visibleWhen: {
+                field: selectedSection.visibleWhen.field,
+                equals: value,
+              },
+            })
+          }
+        />
+      );
+    }
+    if (visibleWhenField.type === 'boolean') {
+      return (
+        <Select
+          placeholder="Equals"
+          options={booleanOptions}
+          value={visibleWhenValue}
+          onChange={(value) =>
+            updateSection({
+              visibleWhen: {
+                field: selectedSection.visibleWhen.field,
+                equals: value,
+              },
+            })
+          }
+        />
+      );
+    }
+    if (visibleWhenField.type === 'select' && visibleWhenField.options?.length) {
+      return (
+        <Select
+          placeholder="Equals"
+          options={visibleWhenField.options.map((option) => ({
+            value: option,
+            label: option,
+          }))}
+          value={visibleWhenValue}
+          onChange={(value) =>
+            updateSection({
+              visibleWhen: {
+                field: selectedSection.visibleWhen.field,
+                equals: value,
+              },
+            })
+          }
+        />
+      );
+    }
+    return (
+      <Input
+        placeholder="Equals"
+        value={visibleWhenValue}
+        onChange={(value) =>
+          updateSection({
+            visibleWhen: {
+              field: selectedSection.visibleWhen.field,
+              equals: value,
+            },
+          })
+        }
+      />
+    );
+  };
+
   return (
     <Row gutter={16} style={{ width: '100%' }}>
       <Col span={10}>
@@ -138,7 +285,7 @@ export default function LayoutTab({ template }) {
             <Card className="panel-card" title="Section Settings" bordered={false}>
               <Space direction="vertical" size={12} style={{ width: '100%' }}>
                 <Typography.Text className="muted">
-                  Configure what appears in this section and when it should be visible.
+                  Section Title
                 </Typography.Text>
                 <Input
                   value={selectedSection.name}
@@ -146,7 +293,7 @@ export default function LayoutTab({ template }) {
                   placeholder="Section name"
                 />
                 <Space direction="vertical" size={6} style={{ width: '100%' }}>
-                  <Typography.Text className="muted">Fields in this section</Typography.Text>
+                  <Typography.Text className="muted">Add fileds</Typography.Text>
                   <Select
                     placeholder="Add field to section"
                     onChange={addField}
@@ -189,29 +336,19 @@ export default function LayoutTab({ template }) {
                     <Select
                       placeholder="Field"
                       value={selectedSection.visibleWhen?.field}
-                      onChange={(value) =>
+                      onChange={(value) => {
+                        const field = getFieldByKey(value);
                         updateSection({
                           visibleWhen: {
                             field: value,
-                            equals: selectedSection.visibleWhen?.equals || '',
+                            equals: getDefaultVisibleValue(field),
                           },
-                        })
-                      }
+                        });
+                      }}
                       options={fieldOptions}
                       style={{ width: 160 }}
                     />
-                    <Input
-                      placeholder="Equals"
-                      value={selectedSection.visibleWhen?.equals || ''}
-                      onChange={(value) =>
-                        updateSection({
-                          visibleWhen: {
-                            field: selectedSection.visibleWhen?.field || '',
-                            equals: value,
-                          },
-                        })
-                      }
-                    />
+                    {renderVisibleWhenInput()}
                     <Button onClick={() => updateSection({ visibleWhen: null })}>Clear</Button>
                   </Space>
                 </Space>
@@ -227,6 +364,8 @@ export default function LayoutTab({ template }) {
             formData={previewData}
             roleId={state.currentRoleId}
             canEdit={false}
+            commonFields={commonFields}
+            commonEditable={false}
             onChange={() => {}}
           />
         </Card>

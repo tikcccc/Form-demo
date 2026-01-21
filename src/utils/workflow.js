@@ -200,6 +200,30 @@ export function buildDefaultFormData(template) {
   return data;
 }
 
+export function buildDefaultCommonData(commonFields = []) {
+  const data = {};
+  commonFields.forEach((field) => {
+    if (field.defaultValue !== undefined) {
+      data[field.key] = field.defaultValue;
+      return;
+    }
+    if (field.type === 'boolean') {
+      data[field.key] = false;
+      return;
+    }
+    if (field.type === 'number') {
+      data[field.key] = 0;
+      return;
+    }
+    if (field.type === 'select' && field.options && field.options.length > 0) {
+      data[field.key] = field.options[0];
+      return;
+    }
+    data[field.key] = '';
+  });
+  return data;
+}
+
 function isRoleAllowed(list, roleId) {
   if (!list || list.length === 0) {
     return true;
@@ -217,14 +241,19 @@ function isActionAllowed(list, actionId) {
   return list.includes(actionId);
 }
 
-export function getFieldAccess(field, { roleId, actionId, canEdit } = {}) {
+export function getFieldAccess(field, { roleId, actionId, canEdit, requireEditable } = {}) {
   const isAdmin = isProjectAdmin(roleId);
   const visible = isAdmin || isRoleAllowed(field.visibleRoles, roleId);
+  const hasEditableConfig =
+    (Array.isArray(field.editableRoles) && field.editableRoles.length > 0) ||
+    (Array.isArray(field.editableActionIds) && field.editableActionIds.length > 0);
   const editable =
     Boolean(canEdit) &&
     visible &&
-    (isAdmin || isRoleAllowed(field.editableRoles, roleId)) &&
-    isActionAllowed(field.editableActionIds, actionId);
+    (isAdmin ||
+      ((!requireEditable || hasEditableConfig) &&
+        isRoleAllowed(field.editableRoles, roleId) &&
+        isActionAllowed(field.editableActionIds, actionId)));
   const required = Boolean(field.required) && editable;
   return { visible, editable, required };
 }
@@ -343,6 +372,7 @@ export function validateFormData(template, formData, context = {}) {
   if (!template) {
     return errors;
   }
+  const commonFieldKeys = new Set(context.commonFieldKeys || []);
   const visibleFieldKeys = new Set();
   if (template.layout && Array.isArray(template.layout.sections)) {
     template.layout.sections.forEach((section) => {
@@ -357,6 +387,9 @@ export function validateFormData(template, formData, context = {}) {
     });
   }
   template.schema.forEach((field) => {
+    if (commonFieldKeys.has(field.key)) {
+      return;
+    }
     if (visibleFieldKeys.size > 0 && !visibleFieldKeys.has(field.key)) {
       return;
     }

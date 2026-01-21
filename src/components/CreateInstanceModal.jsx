@@ -1,9 +1,16 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Button, Form, Input, Modal, Select } from '@arco-design/web-react';
+import CommonFieldsForm from './CommonFieldsForm.jsx';
+import { useAppContext } from '../store/AppContext.jsx';
+import { buildDefaultCommonData } from '../utils/workflow.js';
 
 export default function CreateInstanceModal({ visible, onClose, templates, onCreate }) {
+  const { state } = useAppContext();
   const [templateId, setTemplateId] = useState('');
   const [title, setTitle] = useState('');
+  const commonFields = state.commonFields || [];
+  const hasCommonTitle = commonFields.some((field) => field.key === 'title');
+  const [commonValues, setCommonValues] = useState(() => buildDefaultCommonData(commonFields));
 
   const templateOptions = useMemo(
     () =>
@@ -23,15 +30,27 @@ export default function CreateInstanceModal({ visible, onClose, templates, onCre
     }
   }, [visible, templates]);
 
+  useEffect(() => {
+    if (visible) {
+      setCommonValues(buildDefaultCommonData(commonFields));
+    }
+  }, [commonFields, visible]);
+
+  const handleCommonValueChange = (key, value) => {
+    setCommonValues((prev) => ({ ...prev, [key]: value }));
+  };
+
   const handleOk = () => {
     if (!templateId) {
       return;
     }
-    onCreate({ templateId, title: title.trim() });
+    onCreate({
+      templateId,
+      title: title.trim(),
+      commonFieldValues: commonValues,
+    });
     onClose();
   };
-
-  const selectedTemplate = templates.find((template) => template.id === templateId);
 
   return (
     <Modal
@@ -45,16 +64,17 @@ export default function CreateInstanceModal({ visible, onClose, templates, onCre
         <Form.Item label="Type">
           <Select options={templateOptions} value={templateId} onChange={setTemplateId} />
         </Form.Item>
-        <Form.Item label="Title">
-          <Input placeholder="Optional" value={title} onChange={setTitle} />
-        </Form.Item>
+        {!hasCommonTitle && (
+          <Form.Item label="Title">
+            <Input placeholder="Optional" value={title} onChange={setTitle} />
+          </Form.Item>
+        )}
+        <CommonFieldsForm
+          fields={commonFields}
+          values={commonValues}
+          onValueChange={handleCommonValueChange}
+        />
       </Form>
-      <Button
-        type="text"
-        onClick={() => setTitle(`New ${selectedTemplate?.name || 'Workflow'}`)}
-      >
-        Use suggested title
-      </Button>
     </Modal>
   );
 }

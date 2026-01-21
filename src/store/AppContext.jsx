@@ -9,6 +9,7 @@ import {
   getLatestSentStep,
   getNextTransmittalNo,
   getRoleById,
+  getRoleGroup,
   getTemplateById,
   isProjectAdmin,
   todayISO,
@@ -18,6 +19,12 @@ const AppContext = createContext(null);
 
 const isEmptyLogValue = (value) =>
   value === undefined || value === null || value === '' || Number.isNaN(value);
+
+const normalizeRoleId = (value) =>
+  String(value || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
 
 export function AppProvider({ children }) {
   const [state, setState] = useState(initialState);
@@ -40,13 +47,37 @@ export function AppProvider({ children }) {
       setRole(roleId) {
         setState((prev) => ({ ...prev, currentRoleId: roleId }));
       },
+      addRole({ label }) {
+        const trimmedLabel = label ? label.trim() : '';
+        if (!trimmedLabel) {
+          return;
+        }
+        setState((prev) => {
+          const baseId = normalizeRoleId(trimmedLabel) || `role-${Date.now()}`;
+          const existingIds = new Set(prev.roles.map((role) => role.id));
+          let candidateId = baseId;
+          let suffix = 1;
+          while (existingIds.has(candidateId)) {
+            candidateId = `${baseId}-${suffix}`;
+            suffix += 1;
+          }
+          const newRole = { id: candidateId, label: trimmedLabel };
+          return {
+            ...prev,
+            roles: [...prev.roles, newRole],
+            currentRoleId: candidateId,
+          };
+        });
+      },
       setProject(projectId) {
         setState((prev) => ({ ...prev, currentProjectId: projectId }));
       },
       resetData() {
         setState((prev) => ({
           ...initialState,
-          currentRoleId: prev.currentRoleId,
+          currentRoleId: initialState.roles.some((role) => role.id === prev.currentRoleId)
+            ? prev.currentRoleId
+            : initialState.currentRoleId,
           currentProjectId: prev.currentProjectId,
         }));
       },
@@ -255,7 +286,7 @@ export function AppProvider({ children }) {
               return instance;
             }
             const role = getRoleById(prev.roles, prev.currentRoleId);
-            if (!role || latest.toGroup !== role.group) {
+            if (!role || latest.toGroup !== getRoleGroup(role)) {
               return instance;
             }
             const openedAt = todayISO();
@@ -296,7 +327,7 @@ export function AppProvider({ children }) {
             }
             const role = getRoleById(prev.roles, prev.currentRoleId);
             const isAdmin = isProjectAdmin(prev.currentRoleId);
-            if (!isAdmin && (!role || latest.toGroup !== role.group)) {
+            if (!isAdmin && (!role || latest.toGroup !== getRoleGroup(role))) {
               return instance;
             }
             if (!toGroup || toGroup === latest.toGroup) {
@@ -359,7 +390,7 @@ export function AppProvider({ children }) {
               if (!latest || !latest.lastStep) {
                 return instance;
               }
-              if (!isAdmin && (!role || latest.toGroup !== role.group)) {
+              if (!isAdmin && (!role || latest.toGroup !== getRoleGroup(role))) {
                 return instance;
               }
             }

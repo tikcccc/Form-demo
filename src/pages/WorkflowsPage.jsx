@@ -1,5 +1,15 @@
 import React, { useMemo, useState } from 'react';
-import { Button, Card, Input, Select, Space, Switch, Tabs, Typography } from '@arco-design/web-react';
+import {
+  Alert,
+  Button,
+  Card,
+  Input,
+  Select,
+  Space,
+  Switch,
+  Tabs,
+  Typography,
+} from '@arco-design/web-react';
 import { useNavigate } from 'react-router-dom';
 import CreateInstanceModal from '../components/CreateInstanceModal.jsx';
 import WorkflowTable from '../components/WorkflowTable.jsx';
@@ -96,6 +106,11 @@ export default function WorkflowsPage() {
               </Button>
             </Space>
           </Space>
+          <Alert
+            type="warning"
+            showIcon
+            content="Data is stored in memory. Refreshing resets role groups (including custom), templates, and instances."
+          />
           <Tabs activeTab={activeTab} onChange={setActiveTab} type="rounded">
             <TabPane key="all" title="All" />
             <TabPane key="created" title="My Created" />

@@ -48,6 +48,21 @@ body {
   gap: 12px;
 }
 
+.role-switcher {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: #f9fafc;
+}
+
+.role-switcher .arco-select {
+  min-width: 160px;
+}
+
 .app-content {
   padding: 24px;
 }

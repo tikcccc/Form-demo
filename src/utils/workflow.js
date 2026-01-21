@@ -13,6 +13,13 @@ export function getRoleById(roles, roleId) {
   return roles.find((role) => role.id === roleId);
 }
 
+export function getRoleGroup(role) {
+  if (!role) {
+    return '';
+  }
+  return role.group || role.label || role.id || '';
+}
+
 export function isProjectAdmin(roleId) {
   return roleId === 'project-admin';
 }
@@ -31,10 +38,11 @@ export function canViewInstance(instance, roleId, roles) {
   if (!role || !instance.steps) {
     return false;
   }
+  const roleGroup = getRoleGroup(role);
   return instance.steps.some(
     (step) =>
       step.fromRoleId === roleId ||
-      step.toGroup === role.group ||
+      step.toGroup === roleGroup ||
       (step.ccRoleIds || []).includes(roleId)
   );
 }
@@ -103,7 +111,7 @@ export function isInbox(instance, currentRoleId, roles) {
   if (!latest.lastStep) {
     return false;
   }
-  return latest.toGroup === role.group;
+  return latest.toGroup === getRoleGroup(role);
 }
 
 export function isUnread(instance, currentRoleId, roles) {

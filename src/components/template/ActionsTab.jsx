@@ -16,6 +16,7 @@ import {
   Typography,
 } from '@arco-design/web-react';
 import { useAppContext } from '../../store/AppContext.jsx';
+import { getRoleGroup } from '../../utils/workflow.js';
 
 const statusOptions = ['Approved', 'Rejected', 'AIP', 'For Info'];
 
@@ -285,7 +286,7 @@ export default function ActionsTab({ template }) {
   ];
 
   const roleOptions = state.roles.map((role) => ({ value: role.id, label: role.label }));
-  const groupOptions = Array.from(new Set(state.roles.map((role) => role.group))).map(
+  const groupOptions = Array.from(new Set(state.roles.map((role) => getRoleGroup(role)))).map(
     (group) => ({ value: group, label: group })
   );
 

@@ -4,11 +4,11 @@ export const projects = [
 ];
 
 export const roles = [
-  { id: 'project-admin', label: 'Admin', group: 'Admin' },
-  { id: 'contractor', label: 'Contractor', group: 'Contractor' },
-  { id: 'mtr', label: 'MTR', group: 'MTR' },
-  { id: 'scone', label: 'SConE', group: 'SConE' },
-  { id: 'cm', label: 'CM', group: 'CM' },
+  { id: 'project-admin', label: 'Admin' },
+  { id: 'contractor', label: 'Contractor' },
+  { id: 'mtr', label: 'MTR' },
+  { id: 'scone', label: 'SConE' },
+  { id: 'cm', label: 'CM' },
 ];
 
 export const commonFields = [

@@ -17,6 +17,7 @@ import {
   getLatestSentStep,
   getLoopCount,
   getRoleById,
+  getRoleGroup,
   getTemplateById,
   isProjectAdmin,
   isInbox,
@@ -162,7 +163,7 @@ export default function WorkflowDetailPage() {
     }
     const baseGroups = latestAction?.toCandidateGroups?.length
       ? latestAction.toCandidateGroups
-      : state.roles.map((role) => role.group);
+      : state.roles.map((role) => getRoleGroup(role));
     const uniqueGroups = Array.from(new Set(baseGroups));
     return uniqueGroups
       .filter((group) => group && group !== latestStep.toGroup)

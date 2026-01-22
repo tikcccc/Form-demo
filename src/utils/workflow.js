@@ -326,13 +326,14 @@ export function getFieldAccess(field, { roleId, actionId, canEdit, requireEditab
   const hasEditableConfig =
     (Array.isArray(field.editableRoles) && field.editableRoles.length > 0) ||
     (Array.isArray(field.editableActionIds) && field.editableActionIds.length > 0);
+  const editableByConfig =
+    isRoleAllowed(field.editableRoles, roleId) &&
+    isActionAllowed(field.editableActionIds, actionId);
   const editable =
     Boolean(canEdit) &&
     visible &&
     (isAdmin ||
-      ((!requireEditable || hasEditableConfig) &&
-        isRoleAllowed(field.editableRoles, roleId) &&
-        isActionAllowed(field.editableActionIds, actionId)));
+      (requireEditable ? (hasEditableConfig ? editableByConfig : true) : editableByConfig));
   const required = Boolean(field.required) && editable;
   return { visible, editable, required };
 }

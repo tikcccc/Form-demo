@@ -187,10 +187,12 @@ export default function WorkflowDetailPage() {
     }
     return attachmentsByStep.get(historyStepId) || [];
   }, [attachmentsByStep, historyStepId]);
+  const stepRequiresStatus =
+    latestStep && latestStep.requiresAttachmentStatus === undefined
+      ? latestAction?.requiresAttachmentStatus
+      : latestStep?.requiresAttachmentStatus;
   const incomingRequiresStatus = Boolean(
-    latestStep
-      ? latestStep.requiresAttachmentStatus ?? latestAction?.requiresAttachmentStatus
-      : false
+    (statusAction && statusAction.requiresAttachmentStatus) || stepRequiresStatus
   );
   const statusRequiredForIncoming = Boolean(
     instance &&

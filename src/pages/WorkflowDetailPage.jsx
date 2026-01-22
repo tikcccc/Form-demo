@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Alert, Button, Space, Typography } from '@arco-design/web-react';
+import { Alert, Button, Card, Divider, Space, Typography } from '@arco-design/web-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import ActionPanel from '../components/ActionPanel.jsx';
 import AttachmentsPanel from '../components/AttachmentsPanel.jsx';
@@ -470,56 +470,61 @@ export default function WorkflowDetailPage() {
             </Space>
           )}
         </Space>
-        <Space direction="vertical" size={12} style={{ width: '100%' }}>
-          {showCurrentAttachments ? (
-            <AttachmentsPanel
-              title="Current Attachments"
-              description="Add files to send with your next action."
-              attachments={draftAttachments}
-              onAdd={(attachment) => actions.addAttachment(instance.id, attachment)}
-              onDelete={(attachmentId) => actions.removeAttachment(instance.id, attachmentId)}
-              onStatusChange={(attachmentId, status) =>
-                actions.updateAttachmentStatus(instance.id, attachmentId, status)
-              }
-              statusRequired={statusRequiredForCurrent}
-              statusOptions={statusOptionsForCurrent}
-              fileLibrary={state.fileLibrary}
-              activeViewId="draft"
-              canEdit={canEditAttachments}
-            />
-          ) : null}
-          <AttachmentsPanel
-            title="Incoming Attachments"
-            description={
-              latestStepLabel
-                ? `From ${latestStepLabel}. Set status when required.`
-                : 'From the previous step. Set status when required.'
-            }
-            attachments={incomingAttachments}
-            onStatusChange={(attachmentId, status) =>
-              actions.updateAttachmentStatus(instance.id, attachmentId, status)
-            }
-            statusRequired={statusRequiredForIncoming}
-            statusOptions={statusOptionsForIncoming}
-            showAdd={false}
-            activeViewId="incoming"
-            canEdit={Boolean(statusRequiredForIncoming)}
-          />
-          <AttachmentsPanel
-            title="Attachment History"
-            description={
-              historyStepLabel
-                ? `Read-only record for ${historyStepLabel}.`
-                : 'Read-only record from earlier steps.'
-            }
-            attachments={historyAttachments}
-            showAdd={false}
-            viewOptions={historyStepOptions}
-            activeViewId={historyStepId}
-            onViewChange={setHistoryStepId}
-            canEdit={false}
-          />
-        </Space>
+        <Card className="panel-card" title="Attachments" bordered={false}>
+          <Space direction="vertical" size={12} style={{ width: '100%' }}>
+            {showCurrentAttachments ? (
+              <Space direction="vertical" size={8} style={{ width: '100%' }}>
+                <Typography.Text strong>Current Attachments</Typography.Text>
+                <AttachmentsPanel
+                  embedded
+                  description=""
+                  attachments={draftAttachments}
+                  onAdd={(attachment) => actions.addAttachment(instance.id, attachment)}
+                  onDelete={(attachmentId) => actions.removeAttachment(instance.id, attachmentId)}
+                  onStatusChange={(attachmentId, status) =>
+                    actions.updateAttachmentStatus(instance.id, attachmentId, status)
+                  }
+                  statusRequired={statusRequiredForCurrent}
+                  statusOptions={statusOptionsForCurrent}
+                  fileLibrary={state.fileLibrary}
+                  activeViewId="draft"
+                  canEdit={canEditAttachments}
+                />
+              </Space>
+            ) : null}
+            {showCurrentAttachments ? <Divider /> : null}
+            <Space direction="vertical" size={8} style={{ width: '100%' }}>
+              <Typography.Text strong>Incoming Attachments</Typography.Text>
+              <AttachmentsPanel
+                embedded
+                description=""
+                attachments={incomingAttachments}
+                onStatusChange={(attachmentId, status) =>
+                  actions.updateAttachmentStatus(instance.id, attachmentId, status)
+                }
+                statusRequired={statusRequiredForIncoming}
+                statusOptions={statusOptionsForIncoming}
+                showAdd={false}
+                activeViewId="incoming"
+                canEdit={Boolean(statusRequiredForIncoming)}
+              />
+            </Space>
+            <Divider />
+            <Space direction="vertical" size={8} style={{ width: '100%' }}>
+              <Typography.Text strong>Attachment History</Typography.Text>
+              <AttachmentsPanel
+                embedded
+                description=""
+                attachments={historyAttachments}
+                showAdd={false}
+                viewOptions={historyStepOptions}
+                activeViewId={historyStepId}
+                onViewChange={setHistoryStepId}
+                canEdit={false}
+              />
+            </Space>
+          </Space>
+        </Card>
         <Space direction="vertical" size={16} style={{ width: '100%' }}>
           {showDelegatePanel && (
             <DelegatePanel

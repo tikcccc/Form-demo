@@ -31,6 +31,7 @@ export default function AttachmentsPanel({
   activeViewId = 'draft',
   onViewChange,
   canEdit = false,
+  embedded = false,
 }) {
   const [visible, setVisible] = useState(false);
   const [selectedRowKeys, setSelectedRowKeys] = useState([]);
@@ -225,108 +226,127 @@ export default function AttachmentsPanel({
       )
     : null;
 
+  const content = (
+    <Space direction="vertical" size={10} style={{ width: '100%' }}>
+      {actions && embedded ? (
+        <div style={{ display: 'flex', justifyContent: 'flex-end' }}>{actions}</div>
+      ) : null}
+      {description ? <Typography.Text className="muted">{description}</Typography.Text> : null}
+      {viewOptions.length > 1 && onViewChange ? (
+        <Space size={6}>
+          <Typography.Text className="muted">Step</Typography.Text>
+          <Select size="mini" value={activeViewId} onChange={onViewChange} options={viewOptions} />
+        </Space>
+      ) : null}
+      <Table
+        columns={columns}
+        data={attachments}
+        rowKey="id"
+        pagination={false}
+        rowSelection={
+          showDownload
+            ? {
+                selectedRowKeys,
+                onChange: (keys) => setSelectedRowKeys(keys),
+              }
+            : undefined
+        }
+      />
+    </Space>
+  );
+
+  const modal = (
+    <Modal
+      visible={visible}
+      title="Add Attachment"
+      onOk={handleOk}
+      onCancel={() => {
+        setSelectedFileKeys([]);
+        setVisible(false);
+      }}
+      okText="Add"
+    >
+      <Space direction="vertical" size={12} style={{ width: '100%' }}>
+        <Typography.Text className="muted">
+          Select a file from the project library.
+        </Typography.Text>
+        <div
+          style={{
+            border: '1px solid var(--color-border-2)',
+            borderRadius: 6,
+            padding: 8,
+            maxHeight: 280,
+            overflow: 'auto',
+          }}
+        >
+          {fileTreeData.length === 0 ? (
+            <Typography.Text className="muted">No files available.</Typography.Text>
+          ) : (
+            <Tree
+              treeData={fileTreeData}
+              showLine
+              blockNode
+              checkable
+              checkStrictly
+              defaultExpandedKeys={expandedKeys}
+              checkedKeys={selectedFileKeys}
+              onCheck={(checked) => {
+                const nextKeys = Array.isArray(checked) ? checked : checked?.checked || [];
+                setSelectedFileKeys(nextKeys.filter((key) => fileIndex.has(key)));
+              }}
+            />
+          )}
+        </div>
+        <div
+          style={{
+            border: '1px solid var(--color-border-2)',
+            borderRadius: 6,
+            padding: 10,
+            background: 'var(--color-fill-2)',
+          }}
+        >
+          <Typography.Text className="muted">
+            Selected files {selectedFiles.length > 0 ? `(${selectedFiles.length})` : ''}
+          </Typography.Text>
+          {selectedFiles.length > 0 ? (
+            <Space direction="vertical" size={6} style={{ width: '100%', marginTop: 6 }}>
+              {selectedFiles.map((file) => (
+                <Space key={file.key || file.name} direction="vertical" size={4}>
+                  <Typography.Text>{file.name}</Typography.Text>
+                  <Typography.Text className="muted" style={{ fontSize: 12 }}>
+                    {file.path}
+                  </Typography.Text>
+                  <Space size={8}>
+                    <Tag>{file.type}</Tag>
+                    {file.version ? <Tag>Version {file.version}</Tag> : null}
+                    {file.size ? <Tag>{file.size}</Tag> : null}
+                  </Space>
+                </Space>
+              ))}
+            </Space>
+          ) : (
+            <Typography.Text className="muted" style={{ display: 'block', marginTop: 6 }}>
+              Choose files to preview details.
+            </Typography.Text>
+          )}
+        </div>
+      </Space>
+    </Modal>
+  );
+
+  if (embedded) {
+    return (
+      <>
+        {content}
+        {modal}
+      </>
+    );
+  }
+
   return (
     <Card className="panel-card" bordered={false} title={title} extra={actions}>
-      <Space direction="vertical" size={10} style={{ width: '100%' }}>
-        {description ? <Typography.Text className="muted">{description}</Typography.Text> : null}
-        {viewOptions.length > 1 && onViewChange ? (
-          <Space size={6}>
-            <Typography.Text className="muted">Step</Typography.Text>
-            <Select
-              size="mini"
-              value={activeViewId}
-              onChange={onViewChange}
-              options={viewOptions}
-            />
-          </Space>
-        ) : null}
-        <Table
-          columns={columns}
-          data={attachments}
-          rowKey="id"
-          pagination={false}
-          rowSelection={showDownload ? {
-            selectedRowKeys,
-            onChange: (keys) => setSelectedRowKeys(keys),
-          } : undefined}
-        />
-      </Space>
-      <Modal
-        visible={visible}
-        title="Add Attachment"
-        onOk={handleOk}
-        onCancel={() => {
-          setSelectedFileKeys([]);
-          setVisible(false);
-        }}
-        okText="Add"
-      >
-        <Space direction="vertical" size={12} style={{ width: '100%' }}>
-          <Typography.Text className="muted">
-            Select a file from the project library.
-          </Typography.Text>
-          <div
-            style={{
-              border: '1px solid var(--color-border-2)',
-              borderRadius: 6,
-              padding: 8,
-              maxHeight: 280,
-              overflow: 'auto',
-            }}
-          >
-            {fileTreeData.length === 0 ? (
-              <Typography.Text className="muted">No files available.</Typography.Text>
-            ) : (
-              <Tree
-                treeData={fileTreeData}
-                showLine
-                blockNode
-                checkable
-                checkStrictly
-                defaultExpandedKeys={expandedKeys}
-                checkedKeys={selectedFileKeys}
-                onCheck={(checked) => {
-                  const nextKeys = Array.isArray(checked) ? checked : checked?.checked || [];
-                  setSelectedFileKeys(nextKeys.filter((key) => fileIndex.has(key)));
-                }}
-              />
-            )}
-          </div>
-          <div
-            style={{
-              border: '1px solid var(--color-border-2)',
-              borderRadius: 6,
-              padding: 10,
-              background: 'var(--color-fill-2)',
-            }}
-          >
-            <Typography.Text className="muted">
-              Selected files {selectedFiles.length > 0 ? `(${selectedFiles.length})` : ''}
-            </Typography.Text>
-            {selectedFiles.length > 0 ? (
-              <Space direction="vertical" size={6} style={{ width: '100%', marginTop: 6 }}>
-                {selectedFiles.map((file) => (
-                  <Space key={file.key || file.name} direction="vertical" size={4}>
-                    <Typography.Text>{file.name}</Typography.Text>
-                    <Typography.Text className="muted" style={{ fontSize: 12 }}>
-                      {file.path}
-                    </Typography.Text>
-                    <Space size={8}>
-                      <Tag>{file.type}</Tag>
-                      {file.version ? <Tag>Version {file.version}</Tag> : null}
-                      {file.size ? <Tag>{file.size}</Tag> : null}
-                    </Space>
-                  </Space>
-                ))}
-              </Space>
-            ) : (
-              <Typography.Text className="muted" style={{ display: 'block', marginTop: 6 }}>
-                Choose files to preview details.
-              </Typography.Text>
-            )}
-          </div>
-        </Space>
-      </Modal>
+      {content}
+      {modal}
     </Card>
   );
 }

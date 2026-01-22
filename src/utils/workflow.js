@@ -47,6 +47,9 @@ export function formatGroupList(groups, fallback = '—') {
 }
 
 export function getRecipientGroupsForStep(step) {
+  if (!step) {
+    return [];
+  }
   const groups = getBaseGroupsForStep(step);
   const addGroup = (group) => {
     if (group && !groups.includes(group)) {

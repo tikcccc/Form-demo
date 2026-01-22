@@ -508,6 +508,7 @@ export function AppProvider({ children }) {
               }
             }
             const sentAt = todayISO();
+            const sentAtTime = new Date().toISOString();
             const dueDate = action.dueDays ? addDays(sentAt, action.dueDays) : '';
             const shouldBumpVersion =
               action.id === 'csf-aip' || action.id === 'csf-not-approved';
@@ -534,6 +535,7 @@ export function AppProvider({ children }) {
               toGroup: primaryGroup,
               toGroups: selectedGroups,
               sentAt,
+              sentAtTime,
               openedAt: '',
               dueDate,
               lastStep: action.lastStep,

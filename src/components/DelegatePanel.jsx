@@ -24,11 +24,13 @@ export default function DelegatePanel({
   return (
     <Card className="panel-card" title="Delegate Access" bordered={false}>
       <Space direction="vertical" size={12} style={{ width: '100%' }}>
-        <Typography.Text className="muted">
-          Current recipients: {currentSummary}.
-          Delegation grants additional access without removing the original recipient.
-          {` Delegated groups: ${delegateSummary}.`}
-        </Typography.Text>
+        <Space direction="vertical" size={2}>
+          <Typography.Text className="muted">Current recipients: {currentSummary}</Typography.Text>
+          <Typography.Text className="muted">Delegated groups: {delegateSummary}</Typography.Text>
+          <Typography.Text className="muted">
+            Delegation adds access without removing existing recipients.
+          </Typography.Text>
+        </Space>
         <Select
           placeholder="Add delegate group"
           value={selectedGroup || undefined}

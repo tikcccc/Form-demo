@@ -245,7 +245,9 @@ export default function WorkflowDetailPage() {
       .filter((group) => group && !latestRecipientGroups.includes(group))
       .map((group) => ({ value: group, label: group }));
   }, [latestAction, latestRecipientGroups, latestStep, state.roles]);
-  const showDelegatePanel = Boolean(inInbox && latestStep && allowDelegate);
+  const showDelegatePanel = Boolean(
+    inInbox && latestStep && allowDelegate && delegateOptions.length > 0
+  );
 
   useEffect(() => {
     if (!showDelegatePanel) {

@@ -297,39 +297,7 @@ export default function AttachmentsPanel({
             />
           )}
         </div>
-        <div
-          style={{
-            border: '1px solid var(--color-border-2)',
-            borderRadius: 6,
-            padding: 10,
-            background: 'var(--color-fill-2)',
-          }}
-        >
-          <Typography.Text className="muted">
-            Selected files {selectedFiles.length > 0 ? `(${selectedFiles.length})` : ''}
-          </Typography.Text>
-          {selectedFiles.length > 0 ? (
-            <Space direction="vertical" size={6} style={{ width: '100%', marginTop: 6 }}>
-              {selectedFiles.map((file) => (
-                <Space key={file.key || file.name} direction="vertical" size={4}>
-                  <Typography.Text>{file.name}</Typography.Text>
-                  <Typography.Text className="muted" style={{ fontSize: 12 }}>
-                    {file.path}
-                  </Typography.Text>
-                  <Space size={8}>
-                    <Tag>{file.type}</Tag>
-                    {file.version ? <Tag>Version {file.version}</Tag> : null}
-                    {file.size ? <Tag>{file.size}</Tag> : null}
-                  </Space>
-                </Space>
-              ))}
-            </Space>
-          ) : (
-            <Typography.Text className="muted" style={{ display: 'block', marginTop: 6 }}>
-              Choose files to preview details.
-            </Typography.Text>
-          )}
-        </div>
+        <Typography.Text className="muted">Select files from the tree above.</Typography.Text>
       </Space>
     </Modal>
   );

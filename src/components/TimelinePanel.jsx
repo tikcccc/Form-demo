@@ -64,9 +64,10 @@ export default function TimelinePanel({ instance, roles }) {
   const progressEvents = useMemo(() => {
     const events = [];
     steps.forEach((step, index) => {
+      const sentAtValue = step.sentAtTime || step.sentAt;
       events.push({
         type: 'action',
-        timestamp: toTimestamp(step.sentAt),
+        timestamp: toTimestamp(sentAtValue),
         order: events.length,
         step,
         stepIndex: index,
@@ -131,6 +132,8 @@ export default function TimelinePanel({ instance, roles }) {
                     getRoleById(roles, step.fromRoleId)?.label || step.fromRoleId;
                   const partial = isPartialForStep(instance, step);
                   const recipientLabel = formatGroupList(getBaseGroupsForStep(step));
+                  const sentAtValue = step.sentAtTime || step.sentAt;
+                  const sentAtLabel = sentAtValue ? formatTimestamp(sentAtValue) : '';
                   return (
                     <div key={`action-${step.id}`} className="timeline-item">
                       <Space direction="vertical" size={4} style={{ width: '100%' }}>
@@ -142,7 +145,7 @@ export default function TimelinePanel({ instance, roles }) {
                           From {fromLabel} → {recipientLabel}
                         </Typography.Text>
                         <Space wrap>
-                          <Tag>Sent {step.sentAt}</Tag>
+                          <Tag>{sentAtLabel ? `Sent ${sentAtLabel}` : 'Sent'}</Tag>
                           {step.dueDate ? <Tag>Due {step.dueDate}</Tag> : null}
                           {step.lastStep ? <Tag color="red">Reply required</Tag> : null}
                         </Space>

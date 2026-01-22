@@ -86,7 +86,6 @@ export default function TemplatesPage() {
           </Space>
           <Space>
             <Button onClick={() => navigate('/workflows')}>Back to Forms</Button>
-            <Button onClick={actions.resetData}>Reset to Starter Pack</Button>
             <Button type="primary" onClick={() => setModalVisible(true)}>
               Create Template
             </Button>

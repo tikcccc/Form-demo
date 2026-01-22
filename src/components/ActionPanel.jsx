@@ -5,8 +5,8 @@ export default function ActionPanel({
   actions,
   selectedActionId,
   onSelectAction,
-  selectedToGroup,
-  onSelectToGroup,
+  selectedToGroups,
+  onSelectToGroups,
   message,
   onMessageChange,
   onSend,
@@ -24,7 +24,8 @@ export default function ActionPanel({
   const messageMissing = messageRequired && !trimmedMessage;
   const canSend = Boolean(
     selectedAction &&
-      selectedToGroup &&
+      selectedToGroups &&
+      selectedToGroups.length > 0 &&
       (!statusRequired || attachmentsReady) &&
       formValid &&
       !messageMissing
@@ -40,9 +41,10 @@ export default function ActionPanel({
           options={actions.map((action) => ({ value: action.id, label: action.label }))}
         />
         <Select
-          placeholder="Send to"
-          value={selectedToGroup || undefined}
-          onChange={onSelectToGroup}
+          mode="multiple"
+          placeholder="Send to groups"
+          value={selectedToGroups}
+          onChange={onSelectToGroups}
           options={toOptions}
           disabled={!selectedAction}
         />

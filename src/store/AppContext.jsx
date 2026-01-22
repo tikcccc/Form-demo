@@ -7,6 +7,7 @@ import {
   bumpVersion,
   canInitiateTemplate,
   getAvailableActionsForInstance,
+  getBaseGroupsForStep,
   getLatestSentStep,
   getNextTransmittalNo,
   getRecipientGroupsForStep,
@@ -423,8 +424,10 @@ export function AppProvider({ children }) {
             if (action?.toCandidateGroups?.length && !action.toCandidateGroups.includes(toGroup)) {
               return instance;
             }
+            const baseGroups = getBaseGroupsForStep(latest);
+            const fromGroup = baseGroups.length > 0 ? baseGroups.join(', ') : latest.toGroup;
             const entry = {
-              fromGroup: latest.toGroup,
+              fromGroup,
               toGroup,
               byRoleId: prev.currentRoleId,
               at: new Date().toISOString(),
@@ -448,11 +451,25 @@ export function AppProvider({ children }) {
           }),
         }));
       },
-      sendAction({ instanceId, action, toGroup, message }) {
+      sendAction({ instanceId, action, toGroups, message }) {
         setState((prev) => ({
           ...prev,
           instances: prev.instances.map((instance) => {
             if (instance.id !== instanceId) {
+              return instance;
+            }
+            const rawGroups = Array.isArray(toGroups)
+              ? toGroups
+              : toGroups
+                ? [toGroups]
+                : [];
+            const uniqueGroups = Array.from(new Set(rawGroups.filter(Boolean)));
+            const candidateGroups = action?.toCandidateGroups || [];
+            const selectedGroups =
+              candidateGroups.length > 0
+                ? uniqueGroups.filter((group) => candidateGroups.includes(group))
+                : uniqueGroups;
+            if (selectedGroups.length === 0) {
               return instance;
             }
             const role = getRoleById(prev.roles, prev.currentRoleId);
@@ -508,12 +525,14 @@ export function AppProvider({ children }) {
                   status: attachment.status,
                 }))
               : [];
+            const primaryGroup = selectedGroups[0];
             const newStep = {
               id: newStepId,
               actionId: action.id,
               actionLabel: action.label,
               fromRoleId: prev.currentRoleId,
-              toGroup,
+              toGroup: primaryGroup,
+              toGroups: selectedGroups,
               sentAt,
               openedAt: '',
               dueDate,

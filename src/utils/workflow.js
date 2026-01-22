@@ -20,18 +20,41 @@ export function getRoleGroup(role) {
   return role.group || role.label || role.id || '';
 }
 
-export function getRecipientGroupsForStep(step) {
+export function getBaseGroupsForStep(step) {
   if (!step) {
     return [];
   }
   const groups = [];
-  if (step.toGroup) {
-    groups.push(step.toGroup);
-  }
-  (step.delegateGroups || []).forEach((group) => {
+  const addGroup = (group) => {
     if (group && !groups.includes(group)) {
       groups.push(group);
     }
+  };
+  if (Array.isArray(step.toGroups)) {
+    step.toGroups.forEach((group) => addGroup(group));
+  }
+  if (step.toGroup) {
+    addGroup(step.toGroup);
+  }
+  return groups;
+}
+
+export function formatGroupList(groups, fallback = '—') {
+  if (!groups || groups.length === 0) {
+    return fallback;
+  }
+  return groups.join(', ');
+}
+
+export function getRecipientGroupsForStep(step) {
+  const groups = getBaseGroupsForStep(step);
+  const addGroup = (group) => {
+    if (group && !groups.includes(group)) {
+      groups.push(group);
+    }
+  };
+  (step.delegateGroups || []).forEach((group) => {
+    addGroup(group);
   });
   return groups;
 }
@@ -124,7 +147,10 @@ export function getLatestSentStep(instance) {
 
 export function getCurrentTo(instance) {
   const latest = getLatestSentStep(instance);
-  return latest ? latest.toGroup : '—';
+  if (!latest) {
+    return '—';
+  }
+  return formatGroupList(getRecipientGroupsForStep(latest));
 }
 
 export function getDueDate(instance) {

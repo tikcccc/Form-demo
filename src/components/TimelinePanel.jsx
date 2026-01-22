@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { Card, Space, Tabs, Tag, Typography } from '@arco-design/web-react';
-import { getRoleById, isPartialForStep } from '../utils/workflow.js';
+import { formatGroupList, getBaseGroupsForStep, getRoleById, isPartialForStep } from '../utils/workflow.js';
 
 const { TabPane } = Tabs;
 
@@ -130,6 +130,7 @@ export default function TimelinePanel({ instance, roles }) {
                   const fromLabel =
                     getRoleById(roles, step.fromRoleId)?.label || step.fromRoleId;
                   const partial = isPartialForStep(instance, step);
+                  const recipientLabel = formatGroupList(getBaseGroupsForStep(step));
                   return (
                     <div key={`action-${step.id}`} className="timeline-item">
                       <Space direction="vertical" size={4} style={{ width: '100%' }}>
@@ -138,7 +139,7 @@ export default function TimelinePanel({ instance, roles }) {
                           {partial ? <Tag color="gold">Partial</Tag> : null}
                         </Space>
                         <Typography.Text className="muted">
-                          From {fromLabel} → {step.toGroup}
+                          From {fromLabel} → {recipientLabel}
                         </Typography.Text>
                         <Space wrap>
                           <Tag>Sent {step.sentAt}</Tag>

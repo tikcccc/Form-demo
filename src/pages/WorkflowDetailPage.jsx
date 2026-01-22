@@ -14,6 +14,7 @@ import {
   getAvailableActionsForInstance,
   getCurrentTo,
   getDueDate,
+  getBaseGroupsForStep,
   getLatestSentStep,
   getLoopCount,
   getRecipientGroupsForStep,
@@ -37,7 +38,7 @@ export default function WorkflowDetailPage() {
     : false;
 
   const [selectedActionId, setSelectedActionId] = useState('');
-  const [selectedToGroup, setSelectedToGroup] = useState('');
+  const [selectedToGroups, setSelectedToGroups] = useState([]);
   const [message, setMessage] = useState('');
   const [historyStepId, setHistoryStepId] = useState('');
   const [delegateGroup, setDelegateGroup] = useState('');
@@ -47,7 +48,7 @@ export default function WorkflowDetailPage() {
 
   useEffect(() => {
     setSelectedActionId('');
-    setSelectedToGroup('');
+    setSelectedToGroups([]);
     setMessage('');
     setHistoryStepId('');
     setDelegateGroup('');
@@ -75,6 +76,10 @@ export default function WorkflowDetailPage() {
   const latestStep = instance ? getLatestSentStep(instance) : null;
   const latestRecipientGroups = useMemo(
     () => getRecipientGroupsForStep(latestStep),
+    [latestStep]
+  );
+  const latestBaseGroups = useMemo(
+    () => getBaseGroupsForStep(latestStep),
     [latestStep]
   );
   const currentRole = useMemo(
@@ -200,14 +205,14 @@ export default function WorkflowDetailPage() {
       : true;
   useEffect(() => {
     if (selectedAction) {
-      setSelectedToGroup(selectedAction.toCandidateGroups[0] || '');
+      setSelectedToGroups(selectedAction.toCandidateGroups || []);
     }
   }, [selectedAction]);
 
   useEffect(() => {
     if (selectedActionId && !selectedAction) {
       setSelectedActionId('');
-      setSelectedToGroup('');
+      setSelectedToGroups([]);
     }
   }, [selectedActionId, selectedAction]);
 
@@ -296,10 +301,20 @@ export default function WorkflowDetailPage() {
   );
 
   if (!instance) {
-    return <Typography.Text>Form not found.</Typography.Text>;
+    return (
+      <Space direction="vertical" size={12} style={{ width: '100%' }}>
+        <Typography.Text>Form not found.</Typography.Text>
+        <Button onClick={() => navigate('/workflows')}>Back to Forms</Button>
+      </Space>
+    );
   }
   if (!canView) {
-    return <Typography.Text>Access denied.</Typography.Text>;
+    return (
+      <Space direction="vertical" size={12} style={{ width: '100%' }}>
+        <Typography.Text>Access denied.</Typography.Text>
+        <Button onClick={() => navigate('/workflows')}>Back to Forms</Button>
+      </Space>
+    );
   }
 
   const statusOptionsForIncoming =
@@ -349,7 +364,7 @@ export default function WorkflowDetailPage() {
   };
 
   const handleSend = () => {
-    if (!selectedAction || !selectedToGroup) {
+    if (!selectedAction || selectedToGroups.length === 0) {
       return;
     }
     if (statusRequiredForIncoming && !attachmentsReady) {
@@ -367,11 +382,11 @@ export default function WorkflowDetailPage() {
     actions.sendAction({
       instanceId: instance.id,
       action: selectedAction,
-      toGroup: selectedToGroup,
+      toGroups: selectedToGroups,
       message,
     });
     setSelectedActionId('');
-    setSelectedToGroup('');
+    setSelectedToGroups([]);
     setMessage('');
   };
 
@@ -508,7 +523,7 @@ export default function WorkflowDetailPage() {
         <Space direction="vertical" size={16} style={{ width: '100%' }}>
           {showDelegatePanel && (
             <DelegatePanel
-              currentGroup={latestStep?.toGroup}
+              currentGroups={latestBaseGroups}
               delegateGroups={latestStep?.delegateGroups || []}
               options={delegateOptions}
               selectedGroup={delegateGroup}
@@ -524,8 +539,8 @@ export default function WorkflowDetailPage() {
             actions={availableActions}
             selectedActionId={selectedActionId}
             onSelectAction={setSelectedActionId}
-            selectedToGroup={selectedToGroup}
-            onSelectToGroup={setSelectedToGroup}
+            selectedToGroups={selectedToGroups}
+            onSelectToGroups={setSelectedToGroups}
             message={message}
             onMessageChange={setMessage}
             onSend={handleSend}

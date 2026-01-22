@@ -2,7 +2,7 @@ import React from 'react';
 import { Button, Card, Input, Select, Space, Typography } from '@arco-design/web-react';
 
 export default function DelegatePanel({
-  currentGroup,
+  currentGroups = [],
   delegateGroups = [],
   options,
   selectedGroup,
@@ -15,16 +15,17 @@ export default function DelegatePanel({
   const canDelegate =
     !disabled &&
     Boolean(selectedGroup) &&
-    selectedGroup !== currentGroup &&
+    !currentGroups.includes(selectedGroup) &&
     !delegateGroups.includes(selectedGroup);
   const hasDelegates = delegateGroups.length > 0;
   const delegateSummary = hasDelegates ? delegateGroups.join(', ') : 'None';
+  const currentSummary = currentGroups.length > 0 ? currentGroups.join(', ') : '-';
 
   return (
     <Card className="panel-card" title="Delegate Access" bordered={false}>
       <Space direction="vertical" size={12} style={{ width: '100%' }}>
         <Typography.Text className="muted">
-          Current recipient: {currentGroup || '-'}.
+          Current recipients: {currentSummary}.
           Delegation grants additional access without removing the original recipient.
           {` Delegated groups: ${delegateSummary}.`}
         </Typography.Text>

@@ -197,9 +197,17 @@ export default function WorkflowsPage() {
                 ? `Selected: ${selectedInstance.transmittalNo}`
                 : 'Select one form to export.'}
             </Typography.Text>
-            <Button type="primary" disabled={!canExport} onClick={handleExportPdf}>
-              Export PDF
-            </Button>
+            <Space>
+              <Button
+                disabled={!selectedInstanceId}
+                onClick={() => setSelectedInstanceId('')}
+              >
+                Clear Selection
+              </Button>
+              <Button type="primary" disabled={!canExport} onClick={handleExportPdf}>
+                Export PDF
+              </Button>
+            </Space>
           </Space>
           <WorkflowTable
             instances={filteredInstances}

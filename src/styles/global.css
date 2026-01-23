@@ -168,6 +168,33 @@ body {
   color: var(--text-muted);
 }
 
+/* Improve readability for disabled form values (read-only fields). */
+.arco-input-disabled,
+.arco-input-inner-wrapper-disabled,
+.arco-input-disabled input,
+.arco-input-inner-wrapper-disabled input,
+.arco-input-disabled textarea,
+.arco-textarea-disabled,
+.arco-textarea-disabled textarea,
+.arco-input-number-disabled,
+.arco-input-number-disabled input,
+.arco-select-disabled .arco-select-view,
+.arco-select-disabled .arco-select-view input,
+.arco-select-disabled .arco-select-view-value,
+.arco-select-disabled .arco-select-view-value-mirror {
+  color: var(--text-primary);
+  -webkit-text-fill-color: var(--text-primary);
+}
+
+.arco-input-disabled::placeholder,
+.arco-input-disabled input::placeholder,
+.arco-input-inner-wrapper-disabled input::placeholder,
+.arco-textarea-disabled::placeholder,
+.arco-textarea-disabled textarea::placeholder,
+.arco-select-disabled .arco-select-view input::placeholder {
+  color: var(--text-muted);
+}
+
 @keyframes fadeInUp {
   from {
     opacity: 0;

@@ -4,6 +4,7 @@ import {
   Button,
   Card,
   Input,
+  Popconfirm,
   Select,
   Space,
   Switch,
@@ -136,6 +137,14 @@ export default function WorkflowsPage() {
     });
   };
 
+  const handleDeleteSelected = () => {
+    if (!selectedInstanceId) {
+      return;
+    }
+    actions.deleteInstance(selectedInstanceId);
+    setSelectedInstanceId('');
+  };
+
   return (
     <Space direction="vertical" size={16} style={{ width: '100%' }}>
       <Card className="page-card">
@@ -195,9 +204,29 @@ export default function WorkflowsPage() {
             <Typography.Text className="muted">
               {selectedInstance
                 ? `Selected: ${selectedInstance.transmittalNo}`
-                : 'Select one form to export.'}
+                : isAdmin
+                  ? 'Select one form to export or delete.'
+                  : 'Select one form to export.'}
             </Typography.Text>
             <Space>
+              {isAdmin
+                ? selectedInstanceId
+                  ? (
+                    <Popconfirm
+                      title="Delete this form?"
+                      okText="Delete"
+                      cancelText="Cancel"
+                      onOk={handleDeleteSelected}
+                    >
+                      <Button status="danger">Delete</Button>
+                    </Popconfirm>
+                    )
+                  : (
+                    <Button status="danger" disabled>
+                      Delete
+                    </Button>
+                    )
+                : null}
               <Button
                 disabled={!selectedInstanceId}
                 onClick={() => setSelectedInstanceId('')}

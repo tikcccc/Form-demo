@@ -152,6 +152,20 @@ export function AppProvider({ children }) {
         });
         return createdId;
       },
+      deleteInstance(instanceId) {
+        setState((prev) => {
+          if (!isProjectAdmin(prev.currentRoleId)) {
+            return prev;
+          }
+          if (!prev.instances.some((instance) => instance.id === instanceId)) {
+            return prev;
+          }
+          return {
+            ...prev,
+            instances: prev.instances.filter((instance) => instance.id !== instanceId),
+          };
+        });
+      },
       updateCommonFields(updater) {
         setState((prev) => {
           const nextCommonFields =

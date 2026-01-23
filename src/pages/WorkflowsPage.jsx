@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   Alert,
   Button,
@@ -17,10 +17,12 @@ import { useAppContext } from '../store/AppContext.jsx';
 import {
   canInitiateTemplate,
   canViewInstance,
+  getTemplateById,
   isInbox,
   isOverdue,
   isProjectAdmin,
 } from '../utils/workflow.js';
+import { exportFormReportPdf } from '../utils/reportPdf.js';
 
 const { TabPane } = Tabs;
 
@@ -33,6 +35,7 @@ export default function WorkflowsPage() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [overdueOnly, setOverdueOnly] = useState(false);
   const [createModalVisible, setCreateModalVisible] = useState(false);
+  const [selectedInstanceId, setSelectedInstanceId] = useState('');
   const isAdmin = isProjectAdmin(state.currentRoleId);
   const canCreate = state.templates.some(
     (template) => template.published && canInitiateTemplate(template, state.currentRoleId)
@@ -80,6 +83,24 @@ export default function WorkflowsPage() {
     templateFilter,
   ]);
 
+  useEffect(() => {
+    if (!selectedInstanceId) {
+      return;
+    }
+    if (!filteredInstances.some((instance) => instance.id === selectedInstanceId)) {
+      setSelectedInstanceId('');
+    }
+  }, [filteredInstances, selectedInstanceId]);
+
+  const selectedInstance = useMemo(
+    () => filteredInstances.find((instance) => instance.id === selectedInstanceId) || null,
+    [filteredInstances, selectedInstanceId]
+  );
+  const selectedTemplate = selectedInstance
+    ? getTemplateById(state.templates, selectedInstance.templateId)
+    : null;
+  const canExport = Boolean(selectedInstance && selectedTemplate);
+
   const templateOptions = [
     { value: 'all', label: 'All Templates' },
     ...state.templates.map((template) => ({
@@ -101,6 +122,18 @@ export default function WorkflowsPage() {
     if (newId) {
       navigate(`/workflows/${newId}`);
     }
+  };
+
+  const handleExportPdf = () => {
+    if (!selectedInstance || !selectedTemplate) {
+      return;
+    }
+    exportFormReportPdf({
+      instance: selectedInstance,
+      template: selectedTemplate,
+      commonFields: state.commonFields || [],
+      roles: state.roles,
+    });
   };
 
   return (
@@ -157,13 +190,27 @@ export default function WorkflowsPage() {
         </Space>
       </Card>
       <Card className="page-card">
-        <WorkflowTable
-          instances={filteredInstances}
-          templates={state.templates}
-          roles={state.roles}
-          currentRoleId={state.currentRoleId}
-          onSelect={(id) => navigate(`/workflows/${id}`)}
-        />
+        <Space direction="vertical" size={12} style={{ width: '100%' }}>
+          <Space style={{ width: '100%', justifyContent: 'space-between' }}>
+            <Typography.Text className="muted">
+              {selectedInstance
+                ? `Selected: ${selectedInstance.transmittalNo}`
+                : 'Select one form to export.'}
+            </Typography.Text>
+            <Button type="primary" disabled={!canExport} onClick={handleExportPdf}>
+              Export PDF
+            </Button>
+          </Space>
+          <WorkflowTable
+            instances={filteredInstances}
+            templates={state.templates}
+            roles={state.roles}
+            currentRoleId={state.currentRoleId}
+            selectedRowId={selectedInstanceId}
+            onSelectRow={setSelectedInstanceId}
+            onSelect={(id) => navigate(`/workflows/${id}`)}
+          />
+        </Space>
       </Card>
       <CreateInstanceModal
         visible={createModalVisible}

@@ -12,7 +12,15 @@ import {
   isUnread,
 } from '../utils/workflow.js';
 
-export default function WorkflowTable({ instances, templates, roles, currentRoleId, onSelect }) {
+export default function WorkflowTable({
+  instances,
+  templates,
+  roles,
+  currentRoleId,
+  onSelect,
+  selectedRowId,
+  onSelectRow,
+}) {
   const columns = [
     {
       title: 'Form No',
@@ -88,8 +96,27 @@ export default function WorkflowTable({ instances, templates, roles, currentRole
       columns={columns}
       data={instances}
       pagination={{ pageSize: 8 }}
+      rowSelection={{
+        type: 'radio',
+        selectedRowKeys: selectedRowId ? [selectedRowId] : [],
+        onChange: (keys) => {
+          const next = Array.isArray(keys) && keys.length > 0 ? keys[0] : '';
+          if (typeof onSelectRow === 'function') {
+            onSelectRow(next);
+          }
+        },
+      }}
       onRow={(record) => ({
-        onClick: () => onSelect(record.id),
+        onClick: (event) => {
+          const target = event?.target;
+          if (target?.closest?.('input[type="radio"]')) {
+            return;
+          }
+          if (target?.closest?.('.arco-table-td-selection')) {
+            return;
+          }
+          onSelect(record.id);
+        },
       })}
     />
   );

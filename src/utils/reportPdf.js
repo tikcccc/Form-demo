@@ -14,6 +14,7 @@ const SECTION_FONT_SIZE = 12;
 const TITLE_FONT_SIZE = 18;
 const LINE_HEIGHT = 5;
 const LABEL_WIDTH = 40;
+const NESTED_LABEL_WIDTH = 28;
 
 const formatValue = (field, value) => {
   if (value === undefined || value === null || value === '' || Number.isNaN(value)) {
@@ -85,9 +86,9 @@ export function exportFormReportPdf({
     y += LINE_HEIGHT + 1;
   };
 
-  const addKeyValueRow = (label, value, indent = 0) => {
+  const addKeyValueRow = (label, value, indent = 0, labelWidth = LABEL_WIDTH) => {
     const labelText = `${label}:`;
-    const valueWidth = contentWidth - indent - LABEL_WIDTH;
+    const valueWidth = contentWidth - indent - labelWidth;
     const lines = wrapText(value, valueWidth);
     const rowHeight = LINE_HEIGHT * lines.length;
     ensureSpace(rowHeight);
@@ -95,7 +96,7 @@ export function exportFormReportPdf({
     doc.text(labelText, PAGE_MARGIN + indent, y);
     setFont('normal', BODY_FONT_SIZE);
     lines.forEach((line, index) => {
-      doc.text(line, PAGE_MARGIN + indent + LABEL_WIDTH, y + LINE_HEIGHT * index);
+      doc.text(line, PAGE_MARGIN + indent + labelWidth, y + LINE_HEIGHT * index);
     });
     y += rowHeight;
   };
@@ -110,6 +111,51 @@ export function exportFormReportPdf({
       doc.text(line, PAGE_MARGIN + indent, y);
       y += LINE_HEIGHT;
     });
+  };
+
+  const addDivider = () => {
+    ensureSpace(LINE_HEIGHT);
+    doc.setDrawColor(230);
+    doc.line(PAGE_MARGIN, y, pageWidth - PAGE_MARGIN, y);
+    y += LINE_HEIGHT - 1;
+  };
+
+  const buildColumns = (columns, gap = 2) => {
+    let x = PAGE_MARGIN;
+    return columns.map((column) => {
+      const next = { ...column, x };
+      x += column.width + gap;
+      return next;
+    });
+  };
+
+  const addTableHeader = (columns) => {
+    ensureSpace(LINE_HEIGHT * 2);
+    setFont('bold', BODY_FONT_SIZE);
+    columns.forEach((column) => {
+      doc.text(column.title, column.x, y);
+    });
+    y += LINE_HEIGHT;
+    doc.setDrawColor(220);
+    doc.line(PAGE_MARGIN, y, pageWidth - PAGE_MARGIN, y);
+    y += LINE_HEIGHT - 1;
+  };
+
+  const addTableRow = (columns, values) => {
+    const linesPerColumn = columns.map((column) => {
+      const value = values[column.key];
+      return wrapText(value === undefined || value === null ? 'N/A' : value, column.width - 1);
+    });
+    const maxLines = Math.max(...linesPerColumn.map((lines) => lines.length));
+    const rowHeight = LINE_HEIGHT * maxLines;
+    ensureSpace(rowHeight);
+    setFont('normal', BODY_FONT_SIZE);
+    columns.forEach((column, index) => {
+      linesPerColumn[index].forEach((line, lineIndex) => {
+        doc.text(line, column.x, y + LINE_HEIGHT * lineIndex);
+      });
+    });
+    y += rowHeight + 1;
   };
 
   setFont('bold', TITLE_FONT_SIZE);
@@ -214,38 +260,113 @@ export function exportFormReportPdf({
   if (attachments.length === 0) {
     addKeyValueRow('Files', 'None');
   } else {
+    const draftLabel = 'Draft (Unsent)';
     const stepLabelMap = new Map();
     (instance.steps || []).forEach((step, index) => {
-      const label = `Step ${index + 1} - ${step.actionLabel || step.actionId || ''}`.trim();
-      stepLabelMap.set(step.id, label || `Step ${index + 1}`);
+      const actionLabel = step.actionLabel || step.actionId || 'Step';
+      const dateLabel = step.sentAt ? ` (${step.sentAt})` : '';
+      const label = `Step ${index + 1} - ${actionLabel}${dateLabel}`;
+      stepLabelMap.set(step.id, label);
     });
+    const grouped = new Map();
     attachments.forEach((attachment) => {
-      const parts = [
-        attachment.name,
-        attachment.type ? `(${attachment.type})` : null,
-        attachment.version ? `v${attachment.version}` : null,
-        attachment.status ? attachment.status : null,
-        attachment.size ? attachment.size : null,
-      ].filter(Boolean);
       const stepLabel = attachment.stepId
         ? stepLabelMap.get(attachment.stepId) || 'Step Attachment'
-        : 'Draft';
-      addListItem(`${parts.join(' - ')} - ${stepLabel}`);
+        : draftLabel;
+      if (!grouped.has(stepLabel)) {
+        grouped.set(stepLabel, []);
+      }
+      grouped.get(stepLabel).push(attachment);
+    });
+    const columns = buildColumns([
+      { title: 'File', key: 'name', width: 80 },
+      { title: 'Type', key: 'type', width: 16 },
+      { title: 'Ver', key: 'version', width: 12 },
+      { title: 'Status', key: 'status', width: 34 },
+      { title: 'Size', key: 'size', width: 18 },
+    ]);
+    const groupOrder = [];
+    if (grouped.has(draftLabel)) {
+      groupOrder.push(draftLabel);
+    }
+    (instance.steps || []).forEach((step) => {
+      const label = stepLabelMap.get(step.id);
+      if (label && grouped.has(label)) {
+        groupOrder.push(label);
+      }
+    });
+    grouped.forEach((_, label) => {
+      if (!groupOrder.includes(label)) {
+        groupOrder.push(label);
+      }
+    });
+    groupOrder.forEach((label, index) => {
+      const items = grouped.get(label);
+      if (!items || items.length === 0) {
+        return;
+      }
+      addSubheading(label);
+      addTableHeader(columns);
+      items.forEach((attachment) => {
+        addTableRow(columns, {
+          name: attachment.name || 'N/A',
+          type: attachment.type || 'N/A',
+          version: attachment.version ? `v${attachment.version}` : 'N/A',
+          status: attachment.status || 'N/A',
+          size: attachment.size || 'N/A',
+        });
+      });
+      if (index < groupOrder.length - 1) {
+        addDivider();
+      }
     });
   }
 
-  addSectionTitle('Workflow Steps');
+  addSectionTitle('Timeline');
   const steps = instance.steps || [];
   if (steps.length === 0) {
     addKeyValueRow('Steps', 'None');
   } else {
     steps.forEach((step, index) => {
+      const actionLabel = step.actionLabel || step.actionId || 'Step';
       const fromLabel = getRoleById(roles, step.fromRoleId)?.label || step.fromRoleId;
       const toGroups = formatGroupList(getBaseGroupsForStep(step), 'N/A');
-      const line = `Step ${index + 1}: ${step.actionLabel || step.actionId} from ${fromLabel} to ${toGroups} on ${step.sentAt}`;
-      addListItem(line);
+      const ccLabels = (step.ccRoleIds || []).map(
+        (roleId) => getRoleById(roles, roleId)?.label || roleId
+      );
+      const delegateGroups = formatGroupList(step.delegateGroups || [], 'N/A');
+      const sentAt = step.sentAt || step.sentAtTime || 'N/A';
+      const openedAt = step.openedAt || 'N/A';
+      const dueDate = step.dueDate || 'N/A';
+      addSubheading(`Step ${index + 1} - ${actionLabel}`);
+      addKeyValueRow('From', fromLabel, 2, NESTED_LABEL_WIDTH);
+      addKeyValueRow('To', toGroups, 2, NESTED_LABEL_WIDTH);
+      if (ccLabels.length > 0) {
+        addKeyValueRow('CC', formatGroupList(ccLabels, 'N/A'), 2, NESTED_LABEL_WIDTH);
+      }
+      if (step.delegateGroups && step.delegateGroups.length > 0) {
+        addKeyValueRow('Delegated', delegateGroups, 2, NESTED_LABEL_WIDTH);
+      }
+      addKeyValueRow('Sent', sentAt, 2, NESTED_LABEL_WIDTH);
+      if (step.openedAt) {
+        addKeyValueRow('Opened', openedAt, 2, NESTED_LABEL_WIDTH);
+      }
+      if (step.dueDate) {
+        addKeyValueRow('Due', dueDate, 2, NESTED_LABEL_WIDTH);
+      }
+      if (step.requiresAttachmentStatus !== undefined) {
+        addKeyValueRow(
+          'Attachment Status',
+          step.requiresAttachmentStatus ? 'Required' : 'Not required',
+          2,
+          NESTED_LABEL_WIDTH
+        );
+      }
       if (step.message) {
-        addListItem(`Message: ${step.message}`, 8);
+        addKeyValueRow('Message', step.message, 2, NESTED_LABEL_WIDTH);
+      }
+      if (index < steps.length - 1) {
+        addDivider();
       }
     });
   }

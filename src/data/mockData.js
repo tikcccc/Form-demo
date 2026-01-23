@@ -668,5 +668,5 @@ export const initialState = {
   fileLibrary,
   instances,
   currentProjectId: 'project-a',
-  currentRoleId: 'contractor',
+  currentRoleId: 'project-admin',
 };

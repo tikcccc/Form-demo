@@ -105,6 +105,14 @@ export default function WorkflowTable({
             onSelectRow(next);
           }
         },
+        renderCell: (originNode) => (
+          <span
+            onClick={(event) => event.stopPropagation()}
+            onMouseDown={(event) => event.stopPropagation()}
+          >
+            {originNode}
+          </span>
+        ),
       }}
       onRow={(record) => ({
         onClick: (event) => {

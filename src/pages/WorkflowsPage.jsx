@@ -209,6 +209,12 @@ export default function WorkflowsPage() {
                   : 'Select one form to export.'}
             </Typography.Text>
             <Space>
+              <Button
+                disabled={!selectedInstanceId}
+                onClick={() => setSelectedInstanceId('')}
+              >
+                Clear Selection
+              </Button>
               {isAdmin
                 ? selectedInstanceId
                   ? (
@@ -227,12 +233,6 @@ export default function WorkflowsPage() {
                     </Button>
                     )
                 : null}
-              <Button
-                disabled={!selectedInstanceId}
-                onClick={() => setSelectedInstanceId('')}
-              >
-                Clear Selection
-              </Button>
               <Button type="primary" disabled={!canExport} onClick={handleExportPdf}>
                 Export PDF
               </Button>

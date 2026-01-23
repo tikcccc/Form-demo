@@ -201,20 +201,21 @@ export default function WorkflowsPage() {
       <Card className="page-card">
         <Space direction="vertical" size={12} style={{ width: '100%' }}>
           <Space style={{ width: '100%', justifyContent: 'space-between' }}>
-            <Typography.Text className="muted">
-              {selectedInstance
-                ? `Selected: ${selectedInstance.transmittalNo}`
-                : isAdmin
-                  ? 'Select one form to export or delete.'
-                  : 'Select one form to export.'}
-            </Typography.Text>
+            <Space size={8} align="center">
+              <Typography.Text className="muted">
+                {selectedInstance
+                  ? `Selected: ${selectedInstance.transmittalNo}`
+                  : isAdmin
+                    ? 'Select one form to export or delete.'
+                    : 'Select one form to export.'}
+              </Typography.Text>
+              {selectedInstanceId ? (
+                <Button size="mini" onClick={() => setSelectedInstanceId('')}>
+                  Clear Selection
+                </Button>
+              ) : null}
+            </Space>
             <Space>
-              <Button
-                disabled={!selectedInstanceId}
-                onClick={() => setSelectedInstanceId('')}
-              >
-                Clear Selection
-              </Button>
               {isAdmin
                 ? selectedInstanceId
                   ? (

@@ -2,7 +2,11 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Button, Form, Input, Modal, Select, Typography } from '@arco-design/web-react';
 import CommonFieldsForm from './CommonFieldsForm.jsx';
 import { useAppContext } from '../store/AppContext.jsx';
-import { buildDefaultCommonData, canInitiateTemplate } from '../utils/workflow.js';
+import {
+  buildDefaultCommonData,
+  canInitiateTemplate,
+  validateCommonFields,
+} from '../utils/workflow.js';
 
 export default function CreateInstanceModal({ visible, onClose, templates, onCreate }) {
   const { state } = useAppContext();
@@ -11,6 +15,7 @@ export default function CreateInstanceModal({ visible, onClose, templates, onCre
   const commonFields = state.commonFields || [];
   const hasCommonTitle = commonFields.some((field) => field.key === 'title');
   const [commonValues, setCommonValues] = useState(() => buildDefaultCommonData(commonFields));
+  const [showValidation, setShowValidation] = useState(false);
 
   const allowedTemplates = useMemo(
     () =>
@@ -31,6 +36,7 @@ export default function CreateInstanceModal({ visible, onClose, templates, onCre
       const defaultTemplate = allowedTemplates[0] || null;
       setTemplateId(defaultTemplate?.id || '');
       setTitle('');
+      setShowValidation(false);
     }
   }, [allowedTemplates, visible]);
 
@@ -39,6 +45,11 @@ export default function CreateInstanceModal({ visible, onClose, templates, onCre
       setCommonValues(buildDefaultCommonData(commonFields));
     }
   }, [commonFields, visible]);
+
+  const commonErrors = useMemo(
+    () => validateCommonFields(commonFields, commonValues),
+    [commonFields, commonValues]
+  );
 
   const handleCommonValueChange = (key, value) => {
     setCommonValues((prev) => ({ ...prev, [key]: value }));
@@ -49,6 +60,10 @@ export default function CreateInstanceModal({ visible, onClose, templates, onCre
       return;
     }
     if (!allowedTemplates.some((template) => template.id === templateId)) {
+      return;
+    }
+    if (Object.keys(commonErrors).length > 0) {
+      setShowValidation(true);
       return;
     }
     onCreate({
@@ -85,6 +100,8 @@ export default function CreateInstanceModal({ visible, onClose, templates, onCre
           fields={commonFields}
           values={commonValues}
           onValueChange={handleCommonValueChange}
+          errors={commonErrors}
+          showValidation={showValidation}
         />
       </Form>
     </Modal>

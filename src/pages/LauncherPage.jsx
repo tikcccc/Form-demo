@@ -3,7 +3,11 @@ import { Button, Card, Form, Input, Select, Space, Typography } from '@arco-desi
 import { useNavigate } from 'react-router-dom';
 import CommonFieldsForm from '../components/CommonFieldsForm.jsx';
 import { useAppContext } from '../store/AppContext.jsx';
-import { buildDefaultCommonData, canInitiateTemplate } from '../utils/workflow.js';
+import {
+  buildDefaultCommonData,
+  canInitiateTemplate,
+  validateCommonFields,
+} from '../utils/workflow.js';
 
 export default function LauncherPage() {
   const { state, actions } = useAppContext();
@@ -13,6 +17,7 @@ export default function LauncherPage() {
   const commonFields = state.commonFields || [];
   const hasCommonTitle = commonFields.some((field) => field.key === 'title');
   const [commonValues, setCommonValues] = useState(() => buildDefaultCommonData(commonFields));
+  const [showValidation, setShowValidation] = useState(false);
 
   const allowedTemplates = useMemo(
     () =>
@@ -35,6 +40,7 @@ export default function LauncherPage() {
 
   useEffect(() => {
     setCommonValues(buildDefaultCommonData(commonFields));
+    setShowValidation(false);
   }, [commonFields]);
 
   useEffect(() => {
@@ -51,8 +57,17 @@ export default function LauncherPage() {
     setCommonValues((prev) => ({ ...prev, [key]: value }));
   };
 
+  const commonErrors = useMemo(
+    () => validateCommonFields(commonFields, commonValues),
+    [commonFields, commonValues]
+  );
+
   const handleCreate = () => {
     if (!templateId || !template || !template.published) {
+      return;
+    }
+    if (Object.keys(commonErrors).length > 0) {
+      setShowValidation(true);
       return;
     }
     const newId = actions.createInstance({
@@ -98,6 +113,8 @@ export default function LauncherPage() {
             fields={commonFields}
             values={commonValues}
             onValueChange={handleCommonValueChange}
+            errors={commonErrors}
+            showValidation={showValidation}
           />
           <Button type="primary" onClick={handleCreate} disabled={!template || !template.published}>
             Create

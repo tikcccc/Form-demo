@@ -468,6 +468,24 @@ export function getPublishIssues(template, roles = []) {
   return issues;
 }
 
+const isEmptyValue = (value) =>
+  value === undefined || value === null || value === '' || Number.isNaN(value);
+
+export function validateCommonFields(fields = [], values = {}) {
+  const errors = {};
+  fields.forEach((field) => {
+    if (field.required === false) {
+      return;
+    }
+    const value = values[field.key];
+    if (isEmptyValue(value)) {
+      const label = field.label || field.key;
+      errors[field.key] = `${label} is required.`;
+    }
+  });
+  return errors;
+}
+
 export function validateFormData(template, formData, context = {}) {
   const errors = {};
   if (!template) {
@@ -500,8 +518,7 @@ export function validateFormData(template, formData, context = {}) {
     }
     const value = formData[field.key];
     const label = field.label || field.key;
-    const isEmpty =
-      value === undefined || value === null || value === '' || Number.isNaN(value);
+    const isEmpty = isEmptyValue(value);
 
     if (access.required && isEmpty) {
       errors[field.key] = `${label} is required.`;

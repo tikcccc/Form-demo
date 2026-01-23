@@ -16,6 +16,7 @@ import {
   getTemplateById,
   isProjectAdmin,
   todayISO,
+  validateCommonFields,
 } from '../utils/workflow.js';
 
 const AppContext = createContext(null);
@@ -101,6 +102,10 @@ export function AppProvider({ children }) {
           const nextCommonValues = { ...commonDefaults, ...commonFieldValues };
           if (title && !Object.prototype.hasOwnProperty.call(commonFieldValues, 'title')) {
             nextCommonValues.title = title;
+          }
+          const commonErrors = validateCommonFields(prev.commonFields || [], nextCommonValues);
+          if (Object.keys(commonErrors).length > 0) {
+            return prev;
           }
           Object.entries(nextCommonValues).forEach(([key, value]) => {
             formData[key] = value;

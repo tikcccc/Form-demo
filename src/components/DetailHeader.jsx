@@ -11,13 +11,17 @@ export default function DetailHeader({
   dueDate,
   hasSteps,
   onBack,
+  onExportPdf,
 }) {
   return (
     <Card className="page-card">
       <Space direction="vertical" size={12} style={{ width: '100%' }}>
         <Space style={{ width: '100%', justifyContent: 'space-between' }}>
           <Button onClick={onBack}>Back</Button>
-          {!hasSteps && <Tag color="gold">Editing (Not sent yet)</Tag>}
+          <Space>
+            {onExportPdf && <Button onClick={onExportPdf}>Export PDF</Button>}
+            {!hasSteps && <Tag color="gold">Editing (Not sent yet)</Tag>}
+          </Space>
         </Space>
         <Typography.Title heading={5} style={{ margin: 0 }}>
           {instance.transmittalNo} · {templateName}

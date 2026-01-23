@@ -1,10 +1,20 @@
 import React from 'react';
-import { Form, Input, InputNumber, Select, Space, Typography } from '@arco-design/web-react';
+import {
+  Form,
+  Input,
+  InputNumber,
+  Select,
+  Space,
+  Switch,
+  Typography,
+} from '@arco-design/web-react';
 
 export default function CommonFieldsForm({
   fields = [],
   values = {},
   onValueChange,
+  errors = {},
+  showValidation = false,
 }) {
   if (!fields || fields.length === 0) {
     return <Typography.Text className="muted">No shared fields configured.</Typography.Text>;
@@ -46,11 +56,21 @@ export default function CommonFieldsForm({
 
   return (
     <Space direction="vertical" size={12} style={{ width: '100%' }}>
-      {fields.map((field) => (
-        <Form.Item key={field.key} label={field.label}>
-          {renderInput(field)}
-        </Form.Item>
-      ))}
+      {fields.map((field) => {
+        const error = errors[field.key];
+        const required = field.required !== false;
+        return (
+          <Form.Item
+            key={field.key}
+            label={field.label}
+            required={required}
+            validateStatus={showValidation && error ? 'error' : undefined}
+            help={showValidation && error ? error : null}
+          >
+            {renderInput(field)}
+          </Form.Item>
+        );
+      })}
     </Space>
   );
 }

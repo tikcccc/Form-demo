@@ -8,6 +8,7 @@ import DetailHeader from '../components/DetailHeader.jsx';
 import DynamicForm from '../components/DynamicForm.jsx';
 import TimelinePanel from '../components/TimelinePanel.jsx';
 import { useAppContext } from '../store/AppContext.jsx';
+import { exportFormReportPdf } from '../utils/reportPdf.js';
 import {
   areAttachmentStatusesComplete,
   canViewInstance,
@@ -410,6 +411,16 @@ export default function WorkflowDetailPage() {
     setDelegateNote('');
   };
 
+  const handleExportPdf = () => {
+    exportFormReportPdf({
+      instance,
+      template,
+      commonFields,
+      roles: state.roles,
+      formData,
+    });
+  };
+
   return (
     <Space direction="vertical" size={16} style={{ width: '100%' }}>
       <DetailHeader
@@ -421,6 +432,7 @@ export default function WorkflowDetailPage() {
         dueDate={getDueDate(instance)}
         hasSteps={instance.steps.length > 0}
         onBack={() => navigate(-1)}
+        onExportPdf={handleExportPdf}
       />
       {inInbox && (
         <Alert

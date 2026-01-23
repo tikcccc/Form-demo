@@ -135,7 +135,9 @@ export default function DynamicForm({
             <Space key={entry.id} direction="vertical" size={2}>
               <Typography.Text>{formatHistoryTime(entry.at)}</Typography.Text>
               <Typography.Text className="muted">
-                {formatHistoryValue(field, entry.from)} -> {formatHistoryValue(field, entry.to)}
+                {formatHistoryValue(field, entry.from)}
+                {' -> '}
+                {formatHistoryValue(field, entry.to)}
               </Typography.Text>
               <Typography.Text className="muted">{`By ${roleLabel}`}</Typography.Text>
             </Space>

@@ -322,14 +322,21 @@ export default function WorkflowDetailPage() {
     );
   }
 
+  const fallbackStatusOptions = ['Approved', 'Rejected', 'AIP', 'For Info'];
+  const defaultStatusOptions =
+    state.attachmentStatusOptions && state.attachmentStatusOptions.length > 0
+      ? state.attachmentStatusOptions
+      : fallbackStatusOptions;
   const statusOptionsForIncoming =
-    latestAction?.statusSet && latestAction.statusSet.length > 0
-      ? latestAction.statusSet
-      : ['Approved', 'Rejected', 'AIP', 'For Info'];
+    statusAction?.requiresAttachmentStatus && statusAction.statusSet?.length > 0
+      ? statusAction.statusSet
+      : latestAction?.statusSet && latestAction.statusSet.length > 0
+        ? latestAction.statusSet
+        : defaultStatusOptions;
   const statusOptionsForCurrent =
     statusAction?.statusSet && statusAction.statusSet.length > 0
       ? statusAction.statusSet
-      : ['Approved', 'Rejected', 'AIP', 'For Info'];
+      : defaultStatusOptions;
   const statusRequiredForCurrent =
     canEditAttachments && Boolean(statusAction?.requiresAttachmentStatus) && !inInbox;
   const showCurrentAttachments = instance?.status !== 'Closed';

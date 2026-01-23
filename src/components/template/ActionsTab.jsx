@@ -18,8 +18,6 @@ import {
 import { useAppContext } from '../../store/AppContext.jsx';
 import { getRoleGroup } from '../../utils/workflow.js';
 
-const statusOptions = ['Approved', 'Rejected', 'AIP', 'For Info'];
-
 export default function ActionsTab({ template }) {
   const { state, actions } = useAppContext();
   const [drawerVisible, setDrawerVisible] = useState(false);
@@ -39,6 +37,12 @@ export default function ActionsTab({ template }) {
     closeInstance: false,
     statusSet: [],
   });
+  const fallbackStatusOptions = ['Approved', 'Rejected', 'AIP', 'For Info'];
+  const statusOptions =
+    state.attachmentStatusOptions && state.attachmentStatusOptions.length > 0
+      ? state.attachmentStatusOptions
+      : fallbackStatusOptions;
+  const statusSetOptions = Array.from(new Set([...statusOptions, ...formState.statusSet]));
 
   const openDrawer = (action) => {
     if (action) {
@@ -506,7 +510,7 @@ export default function ActionsTab({ template }) {
             <Form.Item label="Status Set">
               <Select
                 mode="multiple"
-                options={statusOptions.map((status) => ({ value: status, label: status }))}
+                options={statusSetOptions.map((status) => ({ value: status, label: status }))}
                 value={formState.statusSet}
                 onChange={(value) => setFormState({ ...formState, statusSet: value })}
               />

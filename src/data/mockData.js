@@ -21,6 +21,8 @@ export const commonFields = [
   },
 ];
 
+export const attachmentStatusOptions = ['Approved', 'Rejected', 'AIP', 'For Info'];
+
 export const templates = [
   {
     id: 'rfi-default',
@@ -624,6 +626,7 @@ export const initialState = {
   projects,
   roles,
   commonFields,
+  attachmentStatusOptions,
   templates,
   fileLibrary,
   instances,

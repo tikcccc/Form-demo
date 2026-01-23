@@ -1,16 +1,20 @@
 import React, { useMemo, useState } from 'react';
-import { Button, Card, Input, Space, Table, Tag, Typography } from '@arco-design/web-react';
+import { Button, Card, Input, Space, Table, Tabs, Tag, Typography } from '@arco-design/web-react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import CommonFieldsPanel from '../components/CommonFieldsPanel.jsx';
 import CreateTemplateModal from '../components/CreateTemplateModal.jsx';
+import StatusOptionsPanel from '../components/StatusOptionsPanel.jsx';
 import { useAppContext } from '../store/AppContext.jsx';
 import { isProjectAdmin } from '../utils/workflow.js';
+
+const { TabPane } = Tabs;
 
 export default function TemplatesPage() {
   const { state, actions } = useAppContext();
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const [modalVisible, setModalVisible] = useState(false);
+  const [activeTab, setActiveTab] = useState('templates');
   const isAdmin = isProjectAdmin(state.currentRoleId);
 
   if (!isAdmin) {
@@ -86,31 +90,42 @@ export default function TemplatesPage() {
           </Space>
           <Space>
             <Button onClick={() => navigate('/workflows')}>Back to Forms</Button>
-            <Button type="primary" onClick={() => setModalVisible(true)}>
-              Create Template
-            </Button>
+            {activeTab === 'templates' && (
+              <Button type="primary" onClick={() => setModalVisible(true)}>
+                Create Template
+              </Button>
+            )}
           </Space>
         </Space>
       </Card>
       <Card className="page-card">
-        <Typography.Title heading={5} style={{ marginTop: 0 }}>
-          Shared Fields
-        </Typography.Title>
-        <CommonFieldsPanel />
-      </Card>
-      <Card className="page-card">
-        <Space direction="vertical" size={12} style={{ width: '100%' }}>
-          <div className="filter-bar">
-            <Input.Search
-              placeholder="Search template name or id"
-              value={search}
-              onChange={setSearch}
-              style={{ width: 240 }}
-              allowClear
-            />
-          </div>
-          <Table rowKey="id" columns={columns} data={filteredTemplates} pagination={{ pageSize: 8 }} />
-        </Space>
+        <Tabs activeTab={activeTab} onChange={setActiveTab}>
+          <TabPane key="templates" title="Templates">
+            <Space direction="vertical" size={12} style={{ width: '100%' }}>
+              <div className="filter-bar">
+                <Input.Search
+                  placeholder="Search template name or id"
+                  value={search}
+                  onChange={setSearch}
+                  style={{ width: 240 }}
+                  allowClear
+                />
+              </div>
+              <Table
+                rowKey="id"
+                columns={columns}
+                data={filteredTemplates}
+                pagination={{ pageSize: 8 }}
+              />
+            </Space>
+          </TabPane>
+          <TabPane key="shared-fields" title="Shared Fields">
+            <CommonFieldsPanel />
+          </TabPane>
+          <TabPane key="status-sets" title="Status Sets">
+            <StatusOptionsPanel />
+          </TabPane>
+        </Tabs>
       </Card>
       <CreateTemplateModal
         visible={modalVisible}

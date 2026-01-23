@@ -42,6 +42,12 @@ export function AppProvider({ children }) {
       if (!Array.isArray(prev.commonFields)) {
         nextState = { ...nextState, commonFields: initialState.commonFields };
       }
+      if (!Array.isArray(prev.attachmentStatusOptions)) {
+        nextState = {
+          ...nextState,
+          attachmentStatusOptions: initialState.attachmentStatusOptions,
+        };
+      }
       return nextState;
     });
   }, []);
@@ -153,6 +159,18 @@ export function AppProvider({ children }) {
           return {
             ...prev,
             commonFields: nextCommonFields,
+          };
+        });
+      },
+      updateAttachmentStatusOptions(updater) {
+        setState((prev) => {
+          const nextOptions =
+            typeof updater === 'function'
+              ? updater(prev.attachmentStatusOptions || [])
+              : updater;
+          return {
+            ...prev,
+            attachmentStatusOptions: nextOptions,
           };
         });
       },

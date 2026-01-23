@@ -322,7 +322,7 @@ export default function WorkflowDetailPage() {
     );
   }
 
-  const fallbackStatusOptions = ['Approved', 'Rejected', 'AIP', 'For Info'];
+  const fallbackStatusOptions = ['Approved', 'Rejected', 'For Info'];
   const defaultStatusOptions =
     state.attachmentStatusOptions && state.attachmentStatusOptions.length > 0
       ? state.attachmentStatusOptions

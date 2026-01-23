@@ -21,7 +21,7 @@ export const commonFields = [
   },
 ];
 
-export const attachmentStatusOptions = ['Approved', 'Rejected', 'AIP', 'For Info'];
+export const attachmentStatusOptions = ['Approved', 'Rejected', 'For Info'];
 
 export const templates = [
   {
@@ -246,7 +246,7 @@ export const templates = [
         lastStep: true,
         requiresAttachmentStatus: true,
         closeInstance: false,
-        statusSet: ['AIP', 'Rejected'],
+        statusSet: ['Approved', 'Rejected'],
         nextActionIds: ['csf-submit'],
       },
       {

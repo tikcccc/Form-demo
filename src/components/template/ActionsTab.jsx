@@ -37,7 +37,7 @@ export default function ActionsTab({ template }) {
     closeInstance: false,
     statusSet: [],
   });
-  const fallbackStatusOptions = ['Approved', 'Rejected', 'AIP', 'For Info'];
+  const fallbackStatusOptions = ['Approved', 'Rejected', 'For Info'];
   const statusOptions =
     state.attachmentStatusOptions && state.attachmentStatusOptions.length > 0
       ? state.attachmentStatusOptions

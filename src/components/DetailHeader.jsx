@@ -13,6 +13,7 @@ export default function DetailHeader({
   onBack,
   onExportPdf,
 }) {
+  const isClosed = instance.status === 'Closed';
   return (
     <Card className="page-card">
       <Space direction="vertical" size={12} style={{ width: '100%' }}>
@@ -20,12 +21,22 @@ export default function DetailHeader({
           <Button onClick={onBack}>Back</Button>
           <Space>
             {onExportPdf && <Button onClick={onExportPdf}>Export PDF</Button>}
-            {!hasSteps && <Tag color="gold">Editing (Not sent yet)</Tag>}
+            {!isClosed && !hasSteps ? (
+              <Tag color="gold">Editing (Not sent yet)</Tag>
+            ) : null}
           </Space>
         </Space>
         <Typography.Title heading={5} style={{ margin: 0 }}>
-          {instance.transmittalNo} · {templateName}
+          <Space size={8} wrap>
+            <span>{instance.transmittalNo}</span>
+            <Tag>{templateName}</Tag>
+          </Space>
         </Typography.Title>
+        {isClosed && (
+          <Tag color="red">
+            This form is closed and is now read-only.
+          </Tag>
+        )}
         <Descriptions column={3} layout="vertical">
           <Descriptions.Item label="Status">
             <StatusTag status={instance.status} />

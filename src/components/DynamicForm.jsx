@@ -1,5 +1,19 @@
 import React from 'react';
-import { Card, Form, Input, InputNumber, Select, Switch } from '@arco-design/web-react';
+import {
+  Button,
+  Card,
+  Form,
+  Input,
+  InputNumber,
+  Modal,
+  Popover,
+  Select,
+  Space,
+  Switch,
+  Table,
+  Tag,
+  Typography,
+} from '@arco-design/web-react';
 import { buildDefaultFormData, getFieldAccess } from '../utils/workflow.js';
 
 export default function DynamicForm({
@@ -14,6 +28,8 @@ export default function DynamicForm({
   requireEditable = false,
   commonFields = [],
   commonEditable = false,
+  formHistory = [],
+  roles = [],
 }) {
   const fieldMap = React.useMemo(() => {
     if (!template?.schema) {
@@ -25,8 +41,31 @@ export default function DynamicForm({
     () => new Set(commonFields.map((field) => field.key)),
     [commonFields]
   );
+  const commonFieldMap = React.useMemo(
+    () => new Map(commonFields.map((field) => [field.key, field])),
+    [commonFields]
+  );
   const defaultFormData = React.useMemo(() => buildDefaultFormData(template), [template]);
   const accessContext = { roleId, actionId, canEdit, requireEditable };
+  const [historyFieldKey, setHistoryFieldKey] = React.useState('');
+
+  const roleLabelMap = React.useMemo(
+    () =>
+      new Map(roles.map((role) => [role.id, role.label || role.group || role.id])),
+    [roles]
+  );
+  const historyByField = React.useMemo(() => {
+    const map = new Map();
+    (formHistory || []).forEach((entry) => {
+      if (!entry || !entry.fieldKey) {
+        return;
+      }
+      const list = map.get(entry.fieldKey) || [];
+      list.push(entry);
+      map.set(entry.fieldKey, list);
+    });
+    return map;
+  }, [formHistory]);
 
   React.useEffect(() => {
     if (!template?.layout?.sections || typeof onChange !== 'function') {
@@ -62,6 +101,111 @@ export default function DynamicForm({
   if (!template) {
     return null;
   }
+
+  const formatHistoryTime = (value) => {
+    if (!value) {
+      return 'N/A';
+    }
+    const text = String(value);
+    return text.includes('T') ? text.replace('T', ' ').replace('Z', '') : text;
+  };
+
+  const formatHistoryValue = (field, value) => {
+    if (value === undefined || value === null || value === '' || Number.isNaN(value)) {
+      return 'N/A';
+    }
+    if (field?.type === 'boolean') {
+      return value ? 'Yes' : 'No';
+    }
+    return String(value);
+  };
+
+  const getFieldByKey = (key) => commonFieldMap.get(key) || fieldMap.get(key);
+
+  const renderHistoryPreview = (entries, field) => {
+    if (!entries || entries.length === 0) {
+      return <Typography.Text className="muted">No history available.</Typography.Text>;
+    }
+    const recent = entries.slice(-2).reverse();
+    return (
+      <Space direction="vertical" size={4} style={{ maxWidth: 260 }}>
+        {recent.map((entry) => {
+          const roleLabel = roleLabelMap.get(entry.byRoleId) || entry.byRoleId || 'N/A';
+          return (
+            <Space key={entry.id} direction="vertical" size={2}>
+              <Typography.Text>{formatHistoryTime(entry.at)}</Typography.Text>
+              <Typography.Text className="muted">
+                {formatHistoryValue(field, entry.from)} -> {formatHistoryValue(field, entry.to)}
+              </Typography.Text>
+              <Typography.Text className="muted">{`By ${roleLabel}`}</Typography.Text>
+            </Space>
+          );
+        })}
+        {entries.length > 2 && (
+          <Typography.Text className="muted">{`View all ${entries.length} records`}</Typography.Text>
+        )}
+      </Space>
+    );
+  };
+
+  const renderFieldLabel = (field) => {
+    const label = field.label || field.key;
+    const entries = historyByField.get(field.key) || [];
+    if (entries.length === 0) {
+      return label;
+    }
+    return (
+      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+        <span>{label}</span>
+        <Tag color="blue">{`Updated ${entries.length}`}</Tag>
+        <Popover
+          trigger="hover"
+          position="top"
+          content={renderHistoryPreview(entries, field)}
+        >
+          <Button
+            type="text"
+            size="mini"
+            style={{ padding: 0 }}
+            onClick={(event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              setHistoryFieldKey(field.key);
+            }}
+          >
+            History
+          </Button>
+        </Popover>
+      </span>
+    );
+  };
+
+  const historyEntries = historyFieldKey ? historyByField.get(historyFieldKey) || [] : [];
+  const historyField = historyFieldKey ? getFieldByKey(historyFieldKey) : null;
+  const historyLabel = historyField?.label || historyField?.key || historyFieldKey;
+  const historyRows = historyEntries
+    .slice()
+    .sort((a, b) => String(b.at || '').localeCompare(String(a.at || '')))
+    .map((entry, index) => {
+      const roleLabel = roleLabelMap.get(entry.byRoleId) || entry.byRoleId || 'N/A';
+      return {
+        key: entry.id || `${entry.fieldKey}-${index}`,
+        time: formatHistoryTime(entry.at),
+        step: entry.stepLabel || 'N/A',
+        by: roleLabel,
+        change: `${formatHistoryValue(historyField, entry.from)} -> ${formatHistoryValue(
+          historyField,
+          entry.to
+        )}`,
+      };
+    });
+
+  const historyColumns = [
+    { title: 'Time', dataIndex: 'time', width: 160 },
+    { title: 'Step', dataIndex: 'step', width: 160 },
+    { title: 'By', dataIndex: 'by', width: 140 },
+    { title: 'Change', dataIndex: 'change' },
+  ];
 
   const renderInput = (field, access) => {
     const value = formData[field.key];
@@ -129,7 +273,7 @@ export default function DynamicForm({
         <Card className="panel-card form-section" title="Shared Fields" bordered={false}>
           <Form layout="vertical">
             {commonFields.map((field) => (
-              <Form.Item key={field.key} label={field.label}>
+              <Form.Item key={field.key} label={renderFieldLabel(field)}>
                 {renderInput(field, { editable: commonEditable })}
               </Form.Item>
             ))}
@@ -178,7 +322,7 @@ export default function DynamicForm({
                 return (
                   <Form.Item
                     key={field.key}
-                    label={field.label}
+                    label={renderFieldLabel(field)}
                     required={access.required}
                     validateStatus={showValidation && error ? 'error' : undefined}
                     help={showValidation && error ? error : null}
@@ -191,6 +335,19 @@ export default function DynamicForm({
           </Card>
         );
       })}
+      <Modal
+        visible={Boolean(historyFieldKey)}
+        title={historyLabel ? `History - ${historyLabel}` : 'History'}
+        onCancel={() => setHistoryFieldKey('')}
+        onOk={() => setHistoryFieldKey('')}
+        okText="Close"
+      >
+        {historyRows.length === 0 ? (
+          <Typography.Text className="muted">No history available.</Typography.Text>
+        ) : (
+          <Table columns={historyColumns} data={historyRows} pagination={false} />
+        )}
+      </Modal>
     </div>
   );
 }

@@ -85,23 +85,42 @@ export default function TimelinePanel({ instance, roles }) {
     });
     activityLog.forEach((entry) => {
       const entryType = entry.type || 'view';
-      if (entryType !== 'view' && entryType !== 'initiate') {
+      if (entryType !== 'view' && entryType !== 'initiate' && entryType !== 'closed') {
         return;
       }
+      const step = entry.stepId ? steps.find((item) => item.id === entry.stepId) : null;
       events.push({
         type: entryType,
         timestamp: toTimestamp(entry.at),
         order: events.length,
         entry,
+        step,
+        stepIndex: step ? stepIndexMap.get(step.id) : undefined,
       });
     });
+    const hasClosedLog = activityLog.some((entry) => (entry.type || 'view') === 'closed');
+    if (!hasClosedLog && instance.status === 'Closed') {
+      const latestStep = steps.length > 0 ? steps[steps.length - 1] : null;
+      const closedAt =
+        latestStep?.openedAt || latestStep?.sentAtTime || latestStep?.sentAt || instance.createdAt;
+      const maxTimestamp = events.reduce((max, item) => Math.max(max, item.timestamp), 0);
+      const timestamp = toTimestamp(closedAt) || (maxTimestamp ? maxTimestamp + 1 : 1);
+      events.push({
+        type: 'closed',
+        timestamp,
+        order: events.length,
+        entry: { at: closedAt },
+        step: latestStep,
+        stepIndex: latestStep ? steps.length - 1 : undefined,
+      });
+    }
     return events.sort((a, b) => {
       if (a.timestamp === b.timestamp) {
         return a.order - b.order;
       }
       return a.timestamp - b.timestamp;
     });
-  }, [activityLog, steps]);
+  }, [activityLog, instance.createdAt, instance.status, stepIndexMap, steps]);
 
   const editEvents = useMemo(() => {
     const events = formHistory.map((entry, index) => ({
@@ -210,6 +229,38 @@ export default function TimelinePanel({ instance, roles }) {
                           By {byLabel}
                           {entry.at ? ` at ${formatTimestamp(entry.at)}` : ''}
                         </Typography.Text>
+                      </Space>
+                    </div>
+                  );
+                }
+
+                if (event.type === 'closed') {
+                  const { entry, step } = event;
+                  const byLabel = entry?.byRoleId
+                    ? getRoleById(roles, entry.byRoleId)?.label || entry.byRoleId
+                    : '';
+                  const closedAtLabel = entry?.at ? formatTimestamp(entry.at) : '';
+                  return (
+                    <div
+                      key={entry?.id || `closed-${entry?.at || event.order}`}
+                      className="timeline-item"
+                    >
+                      <Space direction="vertical" size={4} style={{ width: '100%' }}>
+                        <Space>
+                          <Typography.Text strong>Closed</Typography.Text>
+                          <Tag color="red">Closed</Tag>
+                        </Space>
+                        {step ? (
+                          <Typography.Text className="muted">
+                            Final action: {getStepLabel(step)}
+                          </Typography.Text>
+                        ) : null}
+                        {byLabel || closedAtLabel ? (
+                          <Typography.Text className="muted">
+                            {byLabel ? `By ${byLabel}` : 'Closed'}
+                            {closedAtLabel ? ` at ${closedAtLabel}` : ''}
+                          </Typography.Text>
+                        ) : null}
                       </Space>
                     </div>
                   );

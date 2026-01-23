@@ -389,20 +389,33 @@ export function AppProvider({ children }) {
                   : instance.status
               : instance.status;
             const roleLabel = role?.label || prev.currentRoleId;
-            const nextActivityLog = hasViewLog
-              ? existingLogs
-              : [
-                  ...existingLogs,
-                  {
-                    id: `log-${Date.now()}`,
-                    type: 'view',
-                    message: `${roleLabel} viewed the details.`,
-                    byRoleId: prev.currentRoleId,
-                    at: logAt,
-                    stepId: latest.id,
-                  },
-                ];
-            return { ...instance, steps: nextSteps, status: nextStatus, activityLog: nextActivityLog };
+            const nextActivityLog = [...existingLogs];
+            if (!hasViewLog) {
+              nextActivityLog.push({
+                id: `log-${Date.now()}`,
+                type: 'view',
+                message: `${roleLabel} viewed the details.`,
+                byRoleId: prev.currentRoleId,
+                at: logAt,
+                stepId: latest.id,
+              });
+            }
+            if (shouldClose && shouldSetOpenedAt) {
+              nextActivityLog.push({
+                id: `log-${Date.now()}-closed`,
+                type: 'closed',
+                message: 'Form closed.',
+                byRoleId: prev.currentRoleId,
+                at: logAt,
+                stepId: latest.id,
+              });
+            }
+            return {
+              ...instance,
+              steps: nextSteps,
+              status: nextStatus,
+              activityLog: nextActivityLog,
+            };
           }),
         }));
       },

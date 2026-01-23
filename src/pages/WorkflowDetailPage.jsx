@@ -480,6 +480,8 @@ export default function WorkflowDetailPage() {
             onChange={handleFormChange}
             errors={formErrors}
             showValidation={canEditForm}
+            formHistory={instance?.formHistory || []}
+            roles={state.roles}
           />
           {canEditForm && (
             <Space style={{ width: '100%', justifyContent: 'flex-end' }}>

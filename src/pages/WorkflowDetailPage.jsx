@@ -23,7 +23,6 @@ import {
   getRoleGroup,
   getTemplateById,
   isProjectAdmin,
-  isInitiatorRole,
   isInbox,
   isUnread,
   validateFormData,
@@ -116,11 +115,13 @@ export default function WorkflowDetailPage() {
     : false;
   const replyRequired = Boolean(inInbox);
   const isDraft = instance ? instance.steps.length === 0 : false;
-  const initiatorLocked = Boolean(
-    template && isDraft && isInitiatorRole(template, state.currentRoleId)
+  const canEditDraft = Boolean(
+    instance &&
+      isDraft &&
+      (isProjectAdmin(state.currentRoleId) || availableActions.length > 0)
   );
   const canEditForm = instance
-    ? instance.status !== 'Closed' && (isDraft || inInbox) && !initiatorLocked
+    ? instance.status !== 'Closed' && (canEditDraft || inInbox)
     : false;
   const requireEditable = Boolean(instance && !isDraft);
   const canEditAttachments = instance
@@ -342,7 +343,8 @@ export default function WorkflowDetailPage() {
   const showCurrentAttachments = instance?.status !== 'Closed';
   const isFormDirty = dirtyKeys.length > 0;
   const formValid = !canEditForm || Object.keys(formErrors).length === 0;
-  const canTakeAction = instance.status !== 'Closed' && (inInbox || isDraft);
+  const canTakeAction =
+    instance.status !== 'Closed' && (inInbox || (isDraft && availableActions.length > 0));
   const createdByLabel = getRoleById(state.roles, instance.createdBy)?.label || instance.createdBy;
   const delegateEnabled = Boolean(
     showDelegatePanel && delegateOptions.length > 0 && delegateGroup

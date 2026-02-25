@@ -91,7 +91,32 @@ export function isInitiatorRole(template, roleId) {
   return allowed.includes(roleId);
 }
 
-export function canViewInstance(instance, roleId, roles) {
+export function canRoleStartDraftInstance(instance, template, roleId) {
+  if (!instance || !template) {
+    return false;
+  }
+  if (isProjectAdmin(roleId)) {
+    return true;
+  }
+  if (!Array.isArray(instance.steps) || instance.steps.length > 0) {
+    return false;
+  }
+  const startableActions = getAvailableActionsForInstance(template, roleId, instance);
+  return startableActions.length > 0;
+}
+
+export function isMyCreatedInstance(instance, roleId, templates = []) {
+  if (!instance) {
+    return false;
+  }
+  if (instance.createdBy === roleId) {
+    return true;
+  }
+  const template = getTemplateById(templates, instance.templateId);
+  return canRoleStartDraftInstance(instance, template, roleId);
+}
+
+export function canViewInstance(instance, roleId, roles, templates = []) {
   if (!instance) {
     return false;
   }
@@ -99,6 +124,10 @@ export function canViewInstance(instance, roleId, roles) {
     return true;
   }
   if (instance.createdBy === roleId) {
+    return true;
+  }
+  const template = getTemplateById(templates, instance.templateId);
+  if (canRoleStartDraftInstance(instance, template, roleId)) {
     return true;
   }
   const role = getRoleById(roles, roleId);

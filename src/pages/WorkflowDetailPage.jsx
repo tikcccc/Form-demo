@@ -35,7 +35,7 @@ export default function WorkflowDetailPage() {
   const navigate = useNavigate();
   const instance = state.instances.find((item) => item.id === instanceId);
   const canView = instance
-    ? canViewInstance(instance, state.currentRoleId, state.roles)
+    ? canViewInstance(instance, state.currentRoleId, state.roles, state.templates)
     : false;
 
   const [selectedActionId, setSelectedActionId] = useState('');

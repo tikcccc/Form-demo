@@ -161,6 +161,12 @@ export default function AttachmentsPanel({
     {
       title: 'File',
       dataIndex: 'name',
+      width: 220,
+      render: (_, record) => (
+        <span className="attachment-file-title" title={record.name || ''}>
+          {record.name || '—'}
+        </span>
+      ),
     },
     {
       title: 'Type',

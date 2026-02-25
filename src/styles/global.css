@@ -168,6 +168,14 @@ body {
   color: var(--text-muted);
 }
 
+.attachment-file-title {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 /* Improve readability for disabled form values (read-only fields). */
 .arco-input-disabled,
 .arco-input-inner-wrapper-disabled,

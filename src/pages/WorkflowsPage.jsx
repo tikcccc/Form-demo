@@ -19,6 +19,7 @@ import {
   canInitiateTemplate,
   canViewInstance,
   getTemplateById,
+  isMyCreatedInstance,
   isInbox,
   isOverdue,
   isProjectAdmin,
@@ -44,10 +45,12 @@ export default function WorkflowsPage() {
 
   const filteredInstances = useMemo(() => {
     let data = state.instances.filter((instance) =>
-      canViewInstance(instance, state.currentRoleId, state.roles)
+      canViewInstance(instance, state.currentRoleId, state.roles, state.templates)
     );
     if (activeTab === 'created') {
-      data = data.filter((instance) => instance.createdBy === state.currentRoleId);
+      data = data.filter((instance) =>
+        isMyCreatedInstance(instance, state.currentRoleId, state.templates)
+      );
     }
     if (activeTab === 'inbox') {
       data = data.filter((instance) => isInbox(instance, state.currentRoleId, state.roles));
@@ -80,6 +83,7 @@ export default function WorkflowsPage() {
     state.currentRoleId,
     state.instances,
     state.roles,
+    state.templates,
     statusFilter,
     templateFilter,
   ]);

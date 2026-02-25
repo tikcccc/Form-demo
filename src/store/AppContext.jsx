@@ -527,9 +527,15 @@ export function AppProvider({ children }) {
             if (!action.allowedRoles.includes(prev.currentRoleId) && !isAdmin) {
               return instance;
             }
+            const template = getTemplateById(prev.templates, instance.templateId);
             const latest = instance.steps?.length ? getLatestSentStep(instance) : null;
             if (!instance.steps || instance.steps.length === 0) {
-              if (instance.createdBy !== prev.currentRoleId && !isAdmin) {
+              const canStartDraft = template
+                ? getAvailableActionsForInstance(template, prev.currentRoleId, instance).some(
+                    (item) => item.id === action.id
+                  )
+                : false;
+              if (instance.createdBy !== prev.currentRoleId && !isAdmin && !canStartDraft) {
                 return instance;
               }
             } else {
@@ -546,7 +552,6 @@ export function AppProvider({ children }) {
                 }
               }
             }
-            const template = getTemplateById(prev.templates, instance.templateId);
             if (template?.actionFlowEnabled) {
               const allowedActions = getAvailableActionsForInstance(
                 template,
